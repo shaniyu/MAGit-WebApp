@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Your magit account</title>
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+
+
+    <script type="text/javascript" language="javascript">
+        //get and show all the repositories the current user has
+        function getReposList() {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            document.getElementById("username").value = encodeURIComponent(username.trim());
+
+            var helloUser = "Hello " + username; //Adding hello username
+            $('#helloStr').empty();
+            $('#helloStr').append(helloUser);
+
+            $.ajax({
+                data: "requestType=getRepos" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#resultOfLoadRepos").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $('#userRepositories').children().remove();
+                    $.each(objectsDataArray || [], createRepoLink);
+                }
+            });
+        }
+
+        function createRepoLink(index, dataJson) {
+            var repositoryNameStr = dataJson.repositoryName;
+            var activeBranchNameStr = dataJson.activeBranchName;
+            var branchesNumberVal = dataJson.branchesNumber;
+            var dateOfLastChangeStr = dataJson.dateOfLastChange == null ? "" : dataJson.dateOfLastChange;
+            var lastCommitMessageStr = dataJson.lastCommitMessage == null ? "" : dataJson.lastCommitMessage;
+
+            var repoNameURL = encodeURIComponent(repositoryNameStr.trim());
+            var remoteRepoNameStr = encodeURIComponent(dataJson.remoteRepoName).trim();
+            var remoteRepoUsernameStr = encodeURIComponent(dataJson.remoteRepoUserName).trim();
+            var userNameStr = encodeURIComponent($("#username").val().trim());
+
+            var newRepo = "<tr>" +
+                "<td><a href=repository.html?username="+userNameStr+"&repositoryName="+repoNameURL+"&remoteRepoName=" +remoteRepoNameStr+"&remoteRepoUsername=" +remoteRepoUsernameStr+ ">"+repositoryNameStr+"</a></td>" +
+                "<td>"+ activeBranchNameStr+"</td>"+
+                "<td>"+branchesNumberVal+"</td>"+
+                "<td>"+dateOfLastChangeStr+"</td>"+
+                "<td>"+lastCommitMessageStr+"</td>"+
+                "</tr>";
+            $('#userRepositories').append(newRepo);
+        }
+
+    </script>
+
+    <script type="text/javascript" language="javascript">
+
+        function getUsersList() {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            document.getElementById("username").value = username;
+
+            $.ajax(  {
+                data: "requestType=getUsers" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#resultOfLoadUsers").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $('#allUsers').children().remove();
+                    $.each(objectsDataArray || [], createUserLink);}
+            });
+
+        }
+
+        function createMessageEntry (message){
+            var userSent = message.usernameFrom;
+            var repositoryName = message.repositoryName;
+            var messageSendTime = message.messageDate;
+            var content = message.messageContent;
+
+            if (repositoryName != "")
+            {
+                //Checking if the message is a PR request
+                if(message.messageStatus != null) //notification about PR
+                {
+                    //PR message
+                    var prMessageStatus = message.messageStatus;
+                    var targetBranch = message.targetBranch;
+                    var baseBranch = message.baseBranch;
+                    var totalMessage = messageSendTime + " Pull Request- " +
+                        " From: " +  userSent + ", " +
+                        " Repository: " + repositoryName  + ", " +
+                        "Status: " + prMessageStatus + ", " +
+                        "Target branch: " + targetBranch + ", " +
+                        "Base branch: " + baseBranch + ",   " +
+                        content;
+                }
+                else{// notification about a repository
+                    var totalMessage = messageSendTime +
+                        " From: " +  userSent + ", " +
+                        "Repository: " + repositoryName  + ",   " +
+                        content;
+                }
+            }
+            else
+            {
+                // some other general notification
+                var totalMessage = messageSendTime + " From: "  + userSent + ",   " + content;
+            }
+
+            return $("<span class=\"success\">").append(totalMessage);
+        }
+
+        function appendMessageEntry(index, entry){
+            var entryElement = createMessageEntry(entry);
+            $("#notificationsArea").append(entryElement).append("<br>");
+        }
+
+        //newNotifications = the added notifications represented with NotificationsAjaxRespinse class
+        function appendNotifications(newNotifications) {
+
+            // add the relevant entries
+            $.each(newNotifications || [], appendMessageEntry);
+
+            // handle the scroller to auto scroll to the end of the notifications area
+            var scroller = $("#notificationsArea");
+            var height = scroller[0].scrollHeight - $(scroller).height();
+            $(scroller).stop().animate({ scrollTop: height }, "slow");
+        }
+
+        function getUserNotifications(username, version)
+        {
+
+            // get updated notifications version from server, if it is not the notificationsVersion we have, get the delta
+            $.ajax(  {
+                data: "requestType=getNotifications" + "&username=" + username + "&notificationsVersion=" + version,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(serverResponse) {
+                    // server respond with all the new notifications that user haven't seen yet, show all of it
+                    appendNotifications(serverResponse.allNewMessages);
+                    document.getElementById("notificationsVersion").value = serverResponse.version;
+                }
+            });
+        }
+
+        function getUserNotificationsVersion()
+        {
+            var username = document.getElementById("username").value;
+            var version =  document.getElementById("notificationsVersion").value;
+
+            // get updated notifications version from server, if it is not the notificationsVersion we have, get the delta
+
+            $.ajax(  {
+                data: "requestType=getNotificationsVersion" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(versionInServer) {
+
+                    if(versionInServer != version)
+                    {
+                        // then should update the version, get all the new messages from the server and show it
+                        getUserNotifications(username, version);
+                    }
+                }
+            });
+        }
+
+
+
+        function createUserLink(index, dataJson) {
+            var userNameStr = encodeURIComponent($("#username").val().trim());
+            var otherUserStr = encodeURIComponent(dataJson.trim());
+            var newUser = "<tr><td><a href=OtherUserRepositories.html?otherusername="+otherUserStr+"&username="+userNameStr+">" + dataJson + "</a></td></tr>";
+            $('#allUsers').append(newUser);
+        }
+
+        function getUserNotificationsVersionAlreadySeen()
+        {
+            var username = document.getElementById("username").value;
+
+            $.ajax(  {
+                data: "requestType=getNotificationsVersionInClient" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(versionInClient) {
+                    document.getElementById("notificationsVersion").value = versionInClient;
+                    getUserNotificationsVersion();
+                }
+            });
+        }
+
+        // get and show all users in the magit web server
+        $(function() {
+            getReposList();
+            getUsersList();
+            getUserNotificationsVersionAlreadySeen();
+            setInterval(getUsersList, 2000);
+            setInterval(getUserNotificationsVersion, 2000);
+        });
+
+
+    </script>
+
+
+    <script type="text/javascript" language="javascript">
+        // upload xml file of a new repository and create a repo in the server
+        $(function() { // onload...do
+            $("#uploadForm").submit(function() {
+                var params = new URLSearchParams(document.location.search);
+                var username = params.get("username");
+                var xmlFile = this[0].files[0];
+                var formData = new FormData();
+                formData.append("xmlFile", xmlFile);
+                formData.append("username", username);
+
+                if(xmlFile != undefined)
+                {
+                    $.ajax({
+                        method:'POST',
+                        data: formData,
+                        url: this.action,
+                        processData: false, // Don't process the files
+                        contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                        timeout: 10000,
+                        error: function(e) {
+                            console.error("Failed to submit");
+                            $("#resultOfLoadFile").text("Failed to get result from server " + e);
+                        },
+                        success: function(objectsDataArray) {
+                            getReposList(); // update the table
+                            $.each(objectsDataArray || [], doneAddingRepo);
+                            if(objectsDataArray[0].successValue == true){
+                                alert("Repository was loaded successfully");
+                            }
+                            //else- the error message (if exists) is displayed already when getting the LoadRepoFromXMLAjaxResponse
+                            //from uploading xml file ajax
+                        }
+                    });
+                }
+                else
+                {
+                    $("#resultOfLoadFile").text("No chosen file");
+                }
+
+                return false;
+            })
+        })
+
+        function doneAddingRepo(index, dataJson) {
+            var returnValue = dataJson.successValue;
+            if (returnValue)
+            {
+                // repository loaded successfully
+                $("#resultOfLoadFile").text("");
+            }
+            else
+            {
+                var errorMesageVal = dataJson.errorMessage;
+                $("#resultOfLoadFile").text(errorMesageVal);
+            }
+        }
+
+        function logout() {
+            var clientVersion = document.getElementById("notificationsVersion").value;
+            var username = document.getElementById("username").value;
+
+            $.ajax(  {
+                data: "requestType=setNotificationsVersionInClient" + "&username=" + username+ "&notificationsVersion="+ clientVersion,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(response) {
+                    if (response == "OK")
+                    {
+                        window.location.href='login.html';
+                    }
+                }
+            });
+        }
+
+        function goToManagePR(){
+            var username = encodeURIComponent(document.getElementById("username").value.trim());
+            window.location.href = "managePullRequest.html?" + "username=" + username;
+        }
+
+    </script>
+
+
+
+    <style type="text/css">
+        body, button, input, select, textarea, file, submit {
+            font-family: Comic Sans MS;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+        table#reposTable{
+            background-color: rgba(198, 231, 241, 0.33);
+        }
+        table#usersTable
+        {
+            background-color: rgba(241, 205, 114, 0.33);
+        }
+        ::-webkit-file-upload-button {
+            font-family: Comic Sans MS;
+        }
+
+        #notificationsArea {
+            overflow-y: scroll;
+            max-height: 120px;
+            width: 700px;
+        }
+
+    </style>
+</head>
+
+<body>
+<input type="hidden" value="" id="username" />
+<input type="hidden"  id="notificationsVersion" />
+
+
+<button onclick="logout()">Logout</button>
+
+
+<h1 id= "helloStr" style="text-align: center; color: #ff621f; "> </h1>
+<br>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-xs-4">
+            <div class="content">
+                <div id="notificationsWindow">
+                    <h3 style="color: #ff621f">Your notifications:</h3>
+                    <h4 style="color: #000000" id="notificationsError"></h4>
+                    <div id="notificationsArea" class="span6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+<button id="managePRBtn" onclick="goToManagePR()" style="text-align: center;" >My pull requests</button>
+
+<h3 style="color: #ff621f ">Your repositories:</h3>
+<div id="resultOfLoadRepos"></div>
+<div>
+    <table id="reposTable">
+        <thead>
+        <tr>
+            <td>Repository name</td>
+            <td>Active branch</td>
+            <td>Branches number</td>
+            <td>Last commit date</td>
+            <td>Last commit message</td>
+        </tr>
+        </thead>
+
+        <tbody id="userRepositories">
+
+        </tbody>
+    </table>
+</div>
+<br>
+
+<h3 style="color: #ff621f">All magit users:</h3>
+<div id="resultOfLoadUsers"></div>
+<div >
+    <table id="usersTable">
+        <thead>
+        <tr>
+            <td>User name</td>
+        </tr>
+        </thead>
+
+        <tbody id="allUsers">
+
+        </tbody>
+    </table>
+</div>
+
+<h3 style="color: #ff621f">Create new repository from xml file:</h3>
+<h4>Choose xml file to load:</h4>
+
+<form id="uploadForm" action="upload" enctype="multipart/form-data" method="POST">
+    <input type="file" name="xmlFile" accept="text/xml" ><br>
+    <br>
+    <input type="Submit" value="Upload File"><br>
+</form>
+
+<div id="resultOfLoadFile"></div>
+
+
+</body>
+
+</html>

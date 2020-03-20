@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="managePullRrequestCSS.css">
+    <title>Your pull requests</title>
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+
+    <script type="text/javascript" language="javascript">
+
+        function showFileContent(file, popup){
+
+            var divId = file.getAttribute('data-showFileContentDivId');
+            var fileContent = file.getAttribute('data-FileContent');
+            var showFileContentDiv = popup.document.getElementById(divId);
+
+            if(showFileContentDiv.hasChildNodes() == false){
+                var textAreaToShowContent = popup.document.createElement("textarea");
+                textAreaToShowContent.rows = "7";
+                textAreaToShowContent.cols = "50";
+                var textAreaTextNode = popup.document.createTextNode(fileContent);
+                textAreaToShowContent.appendChild(textAreaTextNode);
+                textAreaToShowContent.readOnly = true;
+                var linebreak = popup.document.createElement("br");
+                showFileContentDiv.appendChild(linebreak);
+                showFileContentDiv.appendChild(textAreaToShowContent);
+            }
+            else {
+                showFileContentDiv.innerHTML = ""
+            }
+        }
+
+        function createFileListItem(file, changedFilesToParentUL, commitListItem, popup, changeType){
+
+            var fileListItem = popup.document.createElement("LI");
+            fileListItem.textContent = file.fileName + " (" + changeType + ")";
+            fileListItem.style.fontSize = "15px";
+            var showFileContentDiv = popup.document.createElement("div");
+            showFileContentDiv.id = commitListItem.id + file.fileName + "-div";
+            fileListItem.setAttribute('data-FileContent', file.fileContent.trim());
+            fileListItem.setAttribute('data-showFileContentDivId', showFileContentDiv.id);
+            fileListItem.onclick = function(){
+                showFileContent(fileListItem, popup);
+            }
+            showFileContentDiv.innerHTML = "";
+            changedFilesToParentUL.appendChild(fileListItem);
+            changedFilesToParentUL.appendChild(showFileContentDiv);
+        }
+
+        function addChangedFilesToUL(commitListItem, changedFilesToParentUL, whichParent, popup){
+
+            var changesToFirstParentTemp = $(commitListItem).attr(whichParent);
+            var changesToFirstParent = JSON.parse(decodeURIComponent(changesToFirstParentTemp));
+
+            var changesFiles = changesToFirstParent.changedFiles;
+            var deletedFiles = changesToFirstParent.deletedFiles;
+            var newFiles = changesToFirstParent.newFiles;
+
+            for (var i = 0; i < changesFiles.length; i++) {
+                createFileListItem(changesFiles[i], changedFilesToParentUL, commitListItem, popup, "Changed");
+            }
+
+            for (var i = 0; i < deletedFiles.length; i++) {
+                var deletedFile = popup.document.createElement("LI");
+                deletedFile.textContent = deletedFiles[i].fileName + " (Deleted)";
+                deletedFile.style.fontSize = "15px";
+                //No need to show content of a deleted file
+                changedFilesToParentUL.appendChild(deletedFile);
+            }
+
+            for (var i = 0; i < newFiles.length; i++) {
+                createFileListItem(newFiles[i], changedFilesToParentUL, commitListItem, popup, "New");
+            }
+        }
+
+        function createCommitChangesList(commitListItem, commitChangesDiv, popup){
+
+            var commitSha1 = commitListItem.id;
+            var firstParentSha1 = commitListItem.getAttribute('data-firstParent');
+            var secondParentSha1 = commitListItem.getAttribute('data-secondParent');
+            var bold1 = popup.document.createElement('strong');
+            var changesToFirstPredParentTitle = popup.document.createTextNode("Files changed relatively to first parent: " + firstParentSha1);
+            bold1.appendChild(changesToFirstPredParentTitle)
+            commitChangesDiv.appendChild(bold1);
+
+            //ADD UL FOR CHANGES ACCORDING TO FIRST PARENT
+            var changedFilesToFirstUL = popup.document.createElement("UL");
+            changedFilesToFirstUL.id = commitSha1 + "FirstUL";
+            commitChangesDiv.appendChild(changedFilesToFirstUL);
+            addChangedFilesToUL(commitListItem, changedFilesToFirstUL, "data-changesFirstParent", popup);
+
+            if(secondParentSha1 != "null"){ //We'll never get to a scenario where we'll need to display changes relatively to second parent according to Aviad
+                var bold2 = popupdocument.createElement('strong');
+                var changesToSecondPredParentTitle = popup.document.createTextNode("Files changed relatively to second parent:" + secondParentSha1);
+                bold2.appendChild(changesToSecondPredParentTitle);
+                commitChangesDiv.appendChild(bold2);
+                //ADD UL FOR CHANGES ACCORDING TO SECOND PARENT
+                var changedFilesToSecondtUL = popup.document.createElement("UL");
+                changedFilesToSecondtUL.id = commitSha1 + "SecondUL";
+                commitChangesDiv.appendChild(changedFilesToSecondtUL);
+                addChangedFilesToUL(commitListItem, changedFilesToSecondtUL, "data-changesSecondParent", popup);
+            }
+        }
+
+        function showCommitChangesTable(commitListItem, popup){
+
+            var commitChangesDiv = popup.document.getElementById(commitListItem.id + "-div");
+            if(commitChangesDiv.hasChildNodes() == false){
+                createCommitChangesList(commitListItem, commitChangesDiv, popup); //"this" is the commit list item we clicked on that has all of the information
+            }
+            else{ //Commit changes div should collapse
+                commitChangesDiv.innerHTML = "";
+            }
+        }
+
+        function createCommitListItem(commitSha1, creationDate, repoName, popup){
+
+            var commitsOL = popup.document.getElementById(creationDate + "-commitsOL");
+            var username = $('#username').val();
+            var  popupErrorLbl = popup.document.getElementById("popupErrorLbl");
+
+            //Getting the commit details (including changes files)
+            $.ajax({
+                data: "username=" + username + "&repositoryName=" + repoName + "&commitSha1=" + commitSha1,
+                url: "commitForPR",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $(popupErrorLbl).text("Failed to get result from server " + e);
+                },
+                success: function(commitForPR) {
+                    $(popupErrorLbl).text("");
+                    var commitListItem = popup.document.createElement("LI");
+                    var commitListItemTxt = commitSha1 + ", " + commitForPR.commitMessage;
+                    commitListItem.textContent = commitListItemTxt;
+                    commitListItem.id = commitSha1;
+                    commitListItem.setAttribute('data-firstParent', commitForPR.firstPrecedingCommitSha1);
+                    commitListItem.setAttribute('data-secondParent', commitForPR.secondPrecedingCommitSha1);
+
+                    var changesFirstParent = encodeURIComponent(JSON.stringify(commitForPR.changesToFirstPrecedingCommit));
+                    $(commitListItem).attr("data-changesFirstParent",changesFirstParent);
+                    var changesSecondParent = encodeURIComponent(JSON.stringify(commitForPR.changesToSecondPrecedingCommit));
+                    $(commitListItem).attr("data-changesSecondParent",changesSecondParent);
+
+                    var commitChangesDiv = popup.document.createElement("div");
+                    commitChangesDiv.id = commitSha1 + "-div";
+                    commitChangesDiv.classList.add("changedFiles");
+                    commitListItem.onclick = function(){
+                        showCommitChangesTable(commitListItem, popup);
+                    }
+                    commitsOL.appendChild(commitListItem);
+                    commitsOL.appendChild(commitChangesDiv);
+                }
+            });
+        }
+
+        function handleViewCommits(popup) {
+
+            var creationDate = popup.document.getElementById("creationDate").value;
+            var buttonPressed = popup.document.getElementById(creationDate + "vcBtn");
+            var repoName = buttonPressed.getAttribute("data-repositoryName");
+            var commitsDiv = popup.document.getElementById(creationDate + "-commitsDiv");
+
+            //Need to check if the commits div contains children. if so- colapse the div, if not- add the ol
+            if(commitsDiv.hasChildNodes() == false){
+                var commitsDelta = buttonPressed.getAttribute('data-commitsDelta'); //Getting the commits delta
+                var commitsDeltaArray = commitsDelta.split(','); //Creating an array from the commitsDelta (String of commit sha1s seperated by commas)
+                //Creating the ordered list in which to display the commits
+                var commitOrderedList = popup.document.createElement("OL");
+                commitOrderedList.id = creationDate + "-commitsOL";
+
+                //Adding the ordered list to the commitsDiv
+                commitsDiv.appendChild(commitOrderedList);
+
+                for (var i = 0; i < commitsDeltaArray.length; i++) {
+                    createCommitListItem(commitsDeltaArray[i], creationDate, repoName, popup);
+                }
+            }
+            else{ //This is a click that should colapse the commits div
+                commitsDiv.innerHTML = "";
+            }
+        }
+
+        function handleApprovePR(popup){
+
+            var creationDate = popup.document.getElementById("creationDate").value;
+            var buttonPressed = popup.document.getElementById(creationDate + "appBtn");
+            var targetBranch = buttonPressed.getAttribute("data-target").trim();
+            var baseBranch = buttonPressed.getAttribute("data-base").trim();
+            var repoName = buttonPressed.getAttribute("data-repositoryName").trim();
+            var username = $('#username').val();
+            var  popupErrorLbl = popup.document.getElementById("popupErrorLbl");
+
+            $.ajax({
+                data: "requestType=confirmPullRequest"
+                    + "&username=" + username
+                    + "&targetBranch=" + targetBranch
+                    + "&baseBranch=" + baseBranch
+                    + "&repositoryName=" + repoName,
+                url: "pullrequest",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $(popupErrorLbl).text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    if(objectsDataArray.success == false){
+                        $(popupErrorLbl).text(objectsDataArray.errorMessage);
+                    }
+                    else{
+                        $(popupErrorLbl).text("");
+                        popup.close(); //Closing the popup after the approval of the current pr
+                    }
+                }
+            });
+        }
+
+        function handleDeclinePR(popup) {
+
+            var creationDate = popup.document.getElementById("creationDate").value;
+            var buttonPressed = popup.document.getElementById(creationDate + "decBtn");
+            var declineMessageInput = popup.document.getElementById(creationDate + "-declineMessage");
+            var declineMessage = $(declineMessageInput).val();
+            var  popupErrorLbl = popup.document.getElementById("popupErrorLbl");
+
+            if((jQuery.trim(declineMessage)).length==0){
+                $(popupErrorLbl).text("Message must not be empty!");
+            }
+            else{
+                $(popupErrorLbl).text("");
+                declineMessage = declineMessage.trim();
+                var targetBranch = buttonPressed.getAttribute("data-target").trim();
+                var baseBranch = buttonPressed.getAttribute("data-base").trim();
+                var repoName = buttonPressed.getAttribute("data-repositoryName").trim();
+                var username = $('#username').val();
+
+                $.ajax({
+                    data: "requestType=declinePullRequest"
+                        + "&username=" + username
+                        + "&targetBranch=" + targetBranch
+                        + "&baseBranch=" + baseBranch
+                        + "&repositoryName=" + repoName
+                        + "&declineMessage=" + declineMessage,
+                    url: "pullrequest",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $(popupErrorLbl).text("Failed to get result from server " + e);
+                    },
+                    success: function(objectsDataArray) {
+                        if(objectsDataArray.success == false){
+                            $(popupErrorLbl).text(objectsDataArray.errorMessage);
+                        }
+                        else{
+                            $(popupErrorLbl).text("");
+                            popup.close(); //Closing the popup after the approval of the current pr
+                        }
+                    }
+                });
+            }
+        }
+
+        function showButtons() {
+
+            //Getting the div in which to show the buttons, in order to see if this div already contains children
+            // (= this pull request is already chosen) and in this case do nothing.
+            //If this div doesn't contain children then the PR isn't selected and we need to create and show the buttons
+            var creationDate = this.getAttribute("data-creationDate");
+            //var pullRequestButtonsDiv = document.getElementById(creationDate+"-div");
+            var prStatus = this.getAttribute("data-status");
+            var repoName = this.getAttribute("data-repositoryName");
+            var targetBranch = this.getAttribute("data-target");
+            var baseBranch = this.getAttribute("data-base");
+
+            //Opening a popup window so that the user can do operation without being bothered by the PR refresh
+            var popup = window.open("", "Popup", "width=590,height=450");
+            popup.document.getElementsByTagName('body')[0].innerHTML = '';
+            popup.document.write('<html><head><link rel="stylesheet" type="text/css" href="managePullRrequestCSS.css"></head><body>');
+
+            //This will be a hidden input on the popup that will hold the creation date of the PR which is used as an id for many elements regarding the PR
+            var hiddenCreationDateInput = popup.document.createElement("input");
+            hiddenCreationDateInput.setAttribute("type", "hidden");
+            hiddenCreationDateInput.id = "creationDate";
+            hiddenCreationDateInput.setAttribute("value", creationDate);
+
+            if(prStatus == "OPEN"){
+                //Create approve button
+                var approvePRBtn = popup.document.createElement("button");
+                approvePRBtn.textContent = "Approve";
+                approvePRBtn.onclick = function(){
+                    handleApprovePR(popup);
+                }
+                approvePRBtn.id = creationDate + "appBtn";
+                approvePRBtn.style.marginRight = "7px";
+                approvePRBtn.setAttribute('data-creationDate', creationDate); //Will be used as an id of the pull request
+                approvePRBtn.setAttribute("data-target", encodeURIComponent(targetBranch));
+                approvePRBtn.setAttribute("data-base", encodeURIComponent(baseBranch));
+                approvePRBtn.setAttribute('data-repositoryName', encodeURIComponent(repoName));
+
+                //Create decline button
+                var declinePRBtn = popup.document.createElement("button");
+                declinePRBtn.textContent = "Decline";
+                declinePRBtn.onclick = function(){
+                    handleDeclinePR(popup);
+                }
+                declinePRBtn.id = creationDate + "decBtn";
+                declinePRBtn.style.marginRight = "7px";
+                declinePRBtn.setAttribute('data-creationDate', creationDate); //Will be used as an id of the pull request
+                declinePRBtn.setAttribute("data-target", encodeURIComponent(targetBranch));
+                declinePRBtn.setAttribute("data-base", encodeURIComponent(baseBranch));
+                declinePRBtn.setAttribute('data-repositoryName', encodeURIComponent(repoName));
+
+                //creating decline reason text input
+                var declineMessageTitle = popup.document.createTextNode("Reason:");
+                var declineMessage = popup.document.createElement("input");
+                declineMessage.id = creationDate + "decMsg";
+                declineMessage.style.marginRight = "7px";
+                declineMessage.id = creationDate + "-declineMessage";
+
+                //Adding the buttons to the popup
+                popup.document.body.appendChild(approvePRBtn);
+                popup.document.body.appendChild(declinePRBtn);
+                popup.document.body.appendChild(declineMessageTitle);
+                popup.document.body.appendChild(declineMessage);
+            }
+
+            //Create the view added commits button
+            var viewCommitsBtn = popup.document.createElement("button");
+            viewCommitsBtn.textContent = "View added commits";
+            viewCommitsBtn.onclick = function (){
+                handleViewCommits(popup);
+            }
+            viewCommitsBtn.id = creationDate + "vcBtn";
+            var commitsDelta = this.getAttribute("data-commitsDelta"); //Getting the commits delta in order to show them later
+            viewCommitsBtn.setAttribute('data-commitsDelta', commitsDelta); //Will be used as an id of the pull request
+            viewCommitsBtn.setAttribute('data-creationDate', creationDate);
+            viewCommitsBtn.setAttribute('data-repositoryName', repoName);
+
+            //Creating error label for the popup (will be used to notify the user if the decline message is empty and any other errors)
+            var popupErrorLbl = popup.document.createElement("H4");
+            popupErrorLbl.id = "popupErrorLbl";
+
+            //Creating the div in which the commits list will be shown
+            var commitListDiv = popup.document.createElement("div");
+            commitListDiv.id = creationDate.trim() +"-commitsDiv"; //This will be a unique id for the div that will hold a specific PR's commits
+            commitListDiv.innerHTML = "";
+            var newLine = popup.document.createElement("br");
+            var newLine2 = popup.document.createElement("br");
+
+            //Adding the buttons to the popup
+            popup.document.body.appendChild(viewCommitsBtn);
+            popup.document.body.appendChild(newLine);
+            popup.document.body.appendChild(popupErrorLbl);
+            popup.document.body.appendChild(newLine2);
+            popup.document.body.appendChild(commitListDiv);
+            popup.document.body.appendChild(hiddenCreationDateInput);
+        }
+
+        function createPRListItem(index, dataJson) {
+
+            //Creating the list item that will represent a single pull request
+
+            var creationDateTxt = document.createTextNode("Creation date: " + dataJson.creationDate);
+            var newLine1 = document.createElement("br");
+            var repositoryTxt = document.createTextNode("Repository: " + dataJson.remoteRepoName);
+            var newLine2 = document.createElement("br");
+            var fromTxt = document.createTextNode("From: " + dataJson.userWhoCreatedPR);
+            var newLine3 = document.createElement("br");
+            var targetTxt = document.createTextNode("Target branch: " + dataJson.targetBranch);
+            var newLine4 = document.createElement("br");
+            var baseTxt = document.createTextNode("Base branch: " + dataJson.baseBranch);
+            var newLine5 = document.createElement("br");
+            var statusTxt = document.createTextNode("Status: " + dataJson.currStatus);
+
+            var listItem = document.createElement("LI");
+            //var textNode = document.createTextNode(PRText);
+            listItem.appendChild(creationDateTxt);
+            listItem.appendChild(newLine1);
+            listItem.appendChild(repositoryTxt);
+            listItem.appendChild(newLine2);
+            listItem.appendChild(fromTxt);
+            listItem.appendChild(newLine3);
+            listItem.appendChild(targetTxt);
+            listItem.appendChild(newLine4);
+            listItem.appendChild(baseTxt);
+            listItem.appendChild(newLine5);
+            listItem.appendChild(statusTxt);
+
+            var pullRequestButtonsDiv = document.createElement("div");
+            pullRequestButtonsDiv.id = dataJson.creationDate.trim() +"-div"; //This will be a unique id for the div that will hold a specific PR's buttons
+            listItem.setAttribute("data-creationDate", dataJson.creationDate.trim());
+            listItem.setAttribute("data-fromUser", dataJson.userWhoCreatedPR.trim());
+            listItem.setAttribute("data-target", dataJson.targetBranch.trim());
+            listItem.setAttribute("data-base", dataJson.baseBranch.trim());
+            listItem.setAttribute("data-commitsDelta", dataJson.commitsDelta); //Will need it later when viewing all the changes commits in this PR
+            listItem.setAttribute("data-repositoryName", dataJson.remoteRepoName);
+            listItem.setAttribute("data-status", dataJson.currStatus);
+            //Do we need status as a data attribute?
+            listItem.id = dataJson.creationDate.trim() + "-li";
+            listItem.onclick = showButtons;
+
+            //Adding the list item to the oredered list
+            $('#allPullRequestsOL').append(listItem);
+            var linebreak = document.createElement("br");
+            $('#allPullRequestsOL').append(linebreak);
+            $('#allPullRequestsOL').append(pullRequestButtonsDiv);
+        }
+
+        function getPullRequests(){
+
+            var username = $('#username').val();
+
+            $.ajax({
+                data: "requestType=getPullRequests" + "&username=" + username,
+                url: "pullrequest",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text("");
+                    //Removing all previous children from the ordered list (if existed)
+                    $('#allPullRequestsOL').children().remove();
+                    if(objectsDataArray.length == 0){
+                        $('#message').text("You don't have any pull requests");
+                    }
+                    else{
+                        $('#message').text("Click any pull request to view it");
+                        $.each(objectsDataArray || [], createPRListItem);
+                    }
+                }
+            });
+        }
+
+        function getAllDetailsFromUrl(){
+
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+
+            document.getElementById("username").value = username.trim();
+        }
+
+    </script>
+
+    <script type="text/javascript" language="javascript">
+
+        //Getting all pull requests of current user
+        $(function() {
+            getAllDetailsFromUrl();
+            getPullRequests();
+            setInterval(getPullRequests, 2000);
+        });
+
+    </script>
+</head>
+<body>
+<input type="hidden" value="" id="username" />
+<button onclick="goBack()">Back to my account</button>
+<h1 style="text-align: center; color: #ff621f; ">Your pull requests:</h1>
+<h3 id="message" style="text-align: center; color: #000000; "></h3>
+<h3 id="errorLbl" style="text-align: center; color: #000000; "></h3>
+<div id="allPullRequests">
+    <ol id="allPullRequestsOL">
+
+    </ol>
+</div>
+<script>
+    function goBack() {
+        var username = encodeURIComponent(document.getElementById("username").value.trim());
+        window.location.href = "UserPage.html?" + "username=" + username;
+    }
+</script>
+</body>
+</html>

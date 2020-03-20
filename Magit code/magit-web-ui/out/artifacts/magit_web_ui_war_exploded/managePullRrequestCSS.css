@@ -1,0 +1,14 @@
+.changedFiles{
+    font-size:15px;
+}
+body, button , input{
+    font-family: Comic Sans MS;
+    margin: 7px;
+}
+
+li {
+    text-decoration: underline;
+    font-size:18px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}

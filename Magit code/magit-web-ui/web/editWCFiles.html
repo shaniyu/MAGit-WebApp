@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Head Files</title>
+
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+
+    <script type="text/javascript" language="javascript">
+
+        //This function removes all the children of the element that is passed as a parameter
+        function removeChildrenOfElement(currElement){
+            while (currElement.firstChild) {
+                currElement.removeChild(currElement.firstChild);
+            }
+        }
+
+        function handleDeleteFile(fileFullPath, button){
+            $.ajax({
+                data: "requestType=deleteFile" + "&filePath=" + fileFullPath.trim(),
+                url: "editWC",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text("");
+                    if(objectsDataArray.successValue == true) {
+
+                        //Removing all text area and button after the operation is done (colapsing the list item)
+                        var parentDiv = button.parentElement;
+                        removeChildrenOfElement(parentDiv);
+                        getHeadFiles();
+                        // //Removing the file list item from the ordered list
+                        // var currListItem = document.getElementById(decodeURIComponent(fileFullPath).trim() + "-li");
+                        // currListItem.parentNode.removeChild(currListItem);
+                    }
+                    else{
+                        $("#errorLbl").text(objectsDataArray.errorMessage);
+                    }
+                }
+            });
+        }
+
+        function handleEditFile(fileFullPath, newFileContent, button){
+
+            $.ajax({
+                method: 'GET',
+                data: "requestType=editFile" + "&filePath=" + fileFullPath.trim() + "&fileContent=" + newFileContent.trim(),
+                url: "editWC",
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text("");
+                    if(objectsDataArray.successValue == true) {
+
+                        //Setting colapse value of the list item, because after saving we colapse the list item
+                        //So we want it to open again the next time we click on the list item
+                        var currListItem = document.getElementById(decodeURIComponent(fileFullPath).trim() + "-li");
+                        currListItem.setAttribute("data-shouldColapse", false);
+                        //Need to add the new file content to the list item (no need to load all files again)
+                        newFileContent = decodeURIComponent(newFileContent);
+                        currListItem.setAttribute("data-fileContent", newFileContent.trim());
+
+                        //Removing all text area and button after the operation is done (colapsing the list item)
+                        var parentDiv = button.parentElement;
+                        removeChildrenOfElement(parentDiv);
+                    }
+                    else{
+                        $("#errorLbl").text(objectsDataArray.errorMessage);
+                    }
+                }
+            });
+        }
+
+        function editSaveFile(){
+
+            var fileFullPath = this.getAttribute("data-fileFullPath");
+
+            if(this.textContent == "Save"){ //Need to save the file content
+
+                this.textContent = "Edit";
+
+                //Setting colapse value of the list item, because after saving we colapse the list item
+                //So we want it to open again the next time we click on the list item
+                var currListItem = document.getElementById(fileFullPath.trim() + "-li");
+                currListItem.setAttribute("data-shouldColapse", false);
+
+                //Sending the new file content to the server and save the file there
+                var newFileTextArea = document.getElementById(fileFullPath + "-textArea");
+                var newFileContent = newFileTextArea.value;
+                //returning the textarea to be uneditable
+                newFileTextArea.readOnly = true;
+                handleEditFile(encodeURIComponent(fileFullPath), encodeURIComponent(newFileContent), this);
+            }
+            else{ //Need to open text area to edit
+                var textAreaToEdit = document.getElementById(fileFullPath + "-textArea");
+                textAreaToEdit.readOnly = false;
+                this.textContent = "Save";
+            }
+        }
+
+        function deleteFile(){
+
+            //NEED TO DELETE THE FILE FROM THE SERVER
+            //NEED TO GET THE LIST ITEM AND FIND A WAY TO DELETE IT FROM THE OL
+
+            var fileFullPath = this.getAttribute("data-fileFullPath");
+
+            //Setting colapse value of the list item, because after saving we colapse the list item
+            //So we want it to open again the next time we click on the list item
+            var currListItem = document.getElementById(fileFullPath + "-li");
+            currListItem.setAttribute("data-shouldColapse", false);
+
+            handleDeleteFile(encodeURIComponent(fileFullPath), this);
+        }
+
+        function showFileContent() {
+
+            var shouldColapse = this.getAttribute("data-shouldColapse"); //will say if the current click on the list item will close the text area and button or show them
+            var fileContent = this.getAttribute("data-fileContent");
+            var fileFullPath = this.getAttribute("data-fileFullPath")
+
+            if(shouldColapse == "true"){
+                //Removing all text area and button after the operation is done (colapsing the list item)
+                var innerDiv = document.getElementById(fileFullPath + "-div");
+                removeChildrenOfElement(innerDiv);
+                this.setAttribute("data-shouldColapse", false); //Setting the colapse value for the next click to show textarea and buttons
+            }
+            else{ //Should show text area and buttons
+
+                this.setAttribute("data-shouldColapse", true); //Setting the colapse value for the next click to remove textarea and buttons
+
+                //Creating textArea to display file content
+                var textArea = document.createElement("textarea");
+                //textArea.setAttribute("id", fileFullPath + "-textArea");
+                textArea.id = fileFullPath + "-textArea";
+                textArea.rows = "7";
+                textArea.cols = "50";
+                var textAreaTextNode = document.createTextNode(fileContent);
+                textArea.readOnly = true;
+                textArea.appendChild(textAreaTextNode);
+
+                //Creating edit button
+                var editSaveButton = document.createElement("button");
+                editSaveButton.onclick = editSaveFile;
+                editSaveButton.setAttribute("data-fileFullPath", fileFullPath);
+                editSaveButton.textContent = "Edit";
+
+                //Creating delete button
+                var deleteButton = document.createElement("button");
+                deleteButton.onclick = deleteFile;
+                deleteButton.setAttribute("data-fileFullPath", fileFullPath);
+                deleteButton.textContent = "Delete";
+
+                //Adding all elements to the empty div we created before
+                var emptyDivToShowContent = document.getElementById(fileFullPath+"-div");
+                var linebreak = document.createElement("br");
+                emptyDivToShowContent.append(linebreak);
+                emptyDivToShowContent.append(textArea);
+                emptyDivToShowContent.append(editSaveButton);
+                emptyDivToShowContent.append(deleteButton);
+            }
+        }
+
+        function createFileListItem(index, dataJson){
+
+            var listItem = document.createElement("LI");
+            var textnode = document.createTextNode(dataJson.fileName.trim());
+            var emptyDivToShowContent = document.createElement("div");
+            listItem.setAttribute("data-fileContent", dataJson.fileContent.trim());
+            listItem.setAttribute("data-fileFullPath", dataJson.fileFullPath.trim());
+            listItem.id = dataJson.fileFullPath.trim() + "-li";
+            //listItem.setAttribute("id", dataJson.fileFullPath.trim() + "-li");
+
+            //This attribute will tell us if a click on the list item
+            // should open the textarea and button or should collapse it
+            listItem.setAttribute("data-shouldColapse", false);
+            listItem.onclick = showFileContent;
+            listItem.appendChild(textnode);
+
+            //Adding the list item to the oredered list
+            $('#headFilesOL').append(listItem);
+            var linebreak = document.createElement("br");
+            $('#headFilesOL').append(linebreak);
+            //emptyDivToShowContent.setAttribute("id", dataJson.fileFullPath.trim() +"-div");
+            emptyDivToShowContent.id = dataJson.fileFullPath.trim() +"-div";
+            $('#headFilesOL').append(emptyDivToShowContent);
+        }
+
+        function getHeadFiles() {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+            var remoteRepoName = params.get("remoteRepoName");
+            var headBranchCommitSha1 = params.get("commitSha1");
+            var remoteRepoUsername = params.get("remoteRepoUsername");
+
+            document.getElementById("repositoryName").value = repoName.trim();
+            document.getElementById("username").value = username.trim();
+            document.getElementById("remoteRepoName").value = remoteRepoName.trim();
+            document.getElementById("remoteRepoUsername").value = remoteRepoUsername.trim();
+
+            $.ajax({
+                data: "username=" + username + "&repositoryName=" + repoName + "&commitSha1=" + headBranchCommitSha1,
+                url: "getCommitFiles",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text("");
+                    $('#headFilesOL').children().remove();
+                    $.each(objectsDataArray || [], createFileListItem);
+                }
+            });
+        }
+
+        function createOpenChangeFileListItem(file, openChangesOL, changeType){
+
+            var fileListItem = document.createElement("LI");
+            fileListItem.textContent = file.fileName + " (" + changeType + ")";
+            fileListItem.style.fontSize = "15px";
+            openChangesOL.appendChild(fileListItem);
+            var lineBreak = document.createElement("br");
+            openChangesOL.appendChild(lineBreak);
+        }
+
+        function createOpenChangeListItem(objectsDataArray){
+
+            var openChangesOL = document.getElementById("openChangesOL");
+            var changedFiles = objectsDataArray.changedFiles;
+            var deletedFiles = objectsDataArray.deletedFiles;
+            var newFiles = objectsDataArray.newFiles;
+
+            for (var i = 0; i < changedFiles.length; i++) {
+                createOpenChangeFileListItem(changedFiles[i], openChangesOL, "Changed");
+            }
+
+            for (var i = 0; i < deletedFiles.length; i++) {
+                createOpenChangeFileListItem(deletedFiles[i], openChangesOL, "Deleted");
+            }
+
+            for (var i = 0; i < newFiles.length; i++) {
+                createOpenChangeFileListItem(newFiles[i], openChangesOL, "New");
+            }
+        }
+
+        function getOpenChanges(){
+
+            var repoName = document.getElementById("repositoryName").value;
+            var username = document.getElementById("username").value;
+
+            $.ajax({
+                data: "requestType=getOpenChanges" + "&username=" + username + "&repositoryName=" + repoName,
+                url: "editWC",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text("");
+                    $('#openChangesOL').children().remove();
+                    createOpenChangeListItem(objectsDataArray);
+                }
+            });
+        }
+        
+    </script>
+
+    <script type="text/javascript" language="javascript">
+
+        function createCommit() {
+
+            var commitMessage = $('#commitMessageInput').val();
+
+            //Checking that the commit message don't contain only white spaces
+
+            if((jQuery.trim(commitMessage)).length==0){
+                $("#errorLbl").text("Commit message cannot be empty!");
+            }
+            else{
+                var username = $('#username').val();
+                var repositoryName = $('#repositoryName').val();
+
+                $.ajax({
+                    data: "&username=" + username + "&repositoryName=" + repositoryName + "&commitMessage=" + commitMessage,
+                    url: "createCommit",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#errorLbl").text("Failed to get result from server " + e);
+                        //Clearing commit message input
+                        $('#commitMessageInput').val("");
+                    },
+                    success: function(objectsDataArray) {
+                        $("#errorLbl").text("");
+                        if(objectsDataArray.success == true) {
+                            //Clearing commit message input
+                            $('#commitMessageInput').val("");
+                            alert("Commit with sha1: "+ objectsDataArray.errorMessage  + " was created successfully");
+
+                            //Need to refresh the page because we created a new commit on the head branch-
+                            // so the commit parameter needs to be updated
+                            var remoteRepoName = document.getElementById("remoteRepoName").value;
+                            var remoteRepoUserName = document.getElementById("remoteRepoUsername").value;
+                            location.href = location.origin + location.pathname
+                            + "?username=" + username
+                            + "&repositoryName=" + repositoryName
+                            + "&commitSha1=" + objectsDataArray.errorMessage
+                            + "&remoteRepoName=" + remoteRepoName
+                            + "&remoteRepoUsername=" + remoteRepoUserName;
+                        }
+                        else{
+                            $("#errorLbl").text(objectsDataArray.errorMessage);
+                            //Clearing commit message input
+                            $('#commitMessageInput').val("");
+                        }
+                    }
+                });
+            }
+        }
+    </script>
+
+
+    <script type="text/javascript" language="javascript">
+
+
+        function bindNewFileFormToAjaxRequest(){
+
+            $("#createNewFileFrom").on("submit", function(e) {
+
+                e.preventDefault();
+                var newFileLocation = $('#newFileLocation').val();
+                var newFileContent = $('#newFileContent').val();
+
+                //Checking that the file location/ file content don't contain only white spaces
+                if((jQuery.trim(newFileLocation)).length==0)
+                {
+                    $("#errorLbl").text("File location cannot be empty!");
+                }
+                else if((jQuery.trim(newFileContent)).length==0){
+                    $("#errorLbl").text("File content cannot be empty!");
+                }
+                else{ //Create the new file
+                    var parameters = $(this).serialize();
+                    $.ajax({
+                        data: parameters,
+                        url: this.action,
+                        timeout: 4000,
+                        error: function(e) {
+                            console.error("Failed to submit");
+                            $("#errorLbl").text("Failed to get result from server " + e);
+                            $('#createNewFileFormDiv').empty();
+                            //$('#createNewFileBtn').prop("disabled",false);
+                        },
+                        success: function(objectsDataArray) {
+                            $("#errorLbl").text("");
+                            if(objectsDataArray.successValue == true) {
+                                //Removing the form
+                                $('#createNewFileFormDiv').empty();
+                                //Getting all files from WC again
+                                getHeadFiles();
+                            }
+                            else{
+                                $("#errorLbl").text(objectsDataArray.errorMessage);
+                                $('#createNewFileFormDiv').empty();
+                            }
+                        }
+                    })
+                }
+
+                // return value of the submit operation
+                // by default - we'll always return false so it doesn't redirect the user.
+                return false;
+            });
+        }
+
+
+        function createNewFile() {
+
+            //Creating the form which will accept the new file path in which to create the file, and the file content
+            var username = $('#username').val();
+            var repositoryName = $('#repositoryName').val();
+            var createNewFileFormDiv = document.getElementById("createNewFileFormDiv");
+
+            //Add all create new file details only if the div doesn't have these details yet
+            if(createNewFileFormDiv.hasChildNodes() == false){
+                var createFileForm = "<form id=\"createNewFileFrom\" action=\"editWC\" method=\"get\""+
+                    "  <fieldset>" +
+                    "    <legend>Create new file:</legend>" +
+                    "<p>Enter your file location." +
+                    "<p>If you want to create the file in an existing/new folder- write the folder name + \\ + file name</p>" +
+                    "<p>For example A\\new file.txt will create a file named new file in folder A</p>" +
+                    "<input type=\"hidden\" name=\"requestType\" value=\"addNewFile\">" +
+                    "<input type=\"hidden\" name=\"username\" value=\"" + username + "\"" +">" +
+                    "<input type=\"hidden\" name=\"repositoryName\" value=\"" + repositoryName + "\"" +">" +
+                    "    File location:<br>" +
+                    "    <input id=\"newFileLocation\" type=\"text\" name=\"filePath\"><br>" +
+                    "    File content:<br>" +
+                    "<textarea id=\"newFileContent\" name=\"fileContent\" rows=\"10\" cols=\"30\"></textarea>" +
+                    "<br>" +
+                    "    <input type=\"submit\" value=\"Create file\">" +
+                    "  </fieldset>" +
+                    "</form>";
+
+                var cancelCreateNewFileButton = document.createElement("button");
+                cancelCreateNewFileButton.id = "cancelCreateNewFileBtn";
+                cancelCreateNewFileButton.textContent = "Cancel";
+                cancelCreateNewFileButton.style.marginTop = "5px";
+                cancelCreateNewFileButton.onclick = function(){
+                    var createNewFileFormDiv = document.getElementById("createNewFileFormDiv");
+                    createNewFileFormDiv.innerHTML = "";
+                }
+
+                //$('#createNewFileBtn').prop("disabled",true);
+                $('#createNewFileFormDiv').append(createFileForm);
+                $('#createNewFileFormDiv').append(cancelCreateNewFileButton);
+            }
+
+            bindNewFileFormToAjaxRequest();
+        }
+
+    </script>
+    
+    <script type="text/javascript" language="javascript">
+        
+        //Getting all files in the head branch
+        $(function() {
+            getHeadFiles();
+            getOpenChanges();
+            setInterval(getOpenChanges, 2000);
+        });
+
+    </script>
+    <style type="text/css">
+
+        body, button {
+            font-family: Comic Sans MS;
+            margin-left: 7px;
+            margin-right: 7px;
+        }
+
+        li {
+            text-decoration: underline;
+            font-size:25px;
+        }
+        #openChangesOL > li{
+            text-decoration: none;
+        }
+
+
+    </style>
+</head>
+<body>
+<input type="hidden" value="" id="username" />
+<input type="hidden" value="" id="repositoryName" />
+<input type="hidden" value="" id="remoteRepoName" />
+<input type="hidden" value="" id="remoteRepoUsername" />
+<button onclick="goBack()">Back to my repository</button>
+<h1 id= "headBranchFiles"  style="text-align: center; color: #ff621f; ">Your head branch files:</h1>
+<h3 style="text-align: center; color: #000000; ">Click any file to edit it</h3>
+<h3 id="errorLbl" style="text-align: center; color: #000000; "></h3>
+<div style="text-align:center">
+    Commit message: <input id="commitMessageInput" type="text" name="commitMessage">
+    <br><br>
+    <button onclick="createCommit()">Commit</button>
+</div>
+<br>
+<div style="text-align:center">
+    <button id="createNewFileBtn" onclick="createNewFile()">Create new file</button>
+</div>
+<div id="createNewFileFormDiv"></div>
+<div id="headFiles">
+    <ol id="headFilesOL"></ol>
+</div>
+<br>
+<div>
+    <h3>Open changes:</h3>
+    <div id="openChangesDiv">
+        <ol id="openChangesOL"></ol>
+    </div>
+</div>
+<script>
+    function goBack() {
+        var username = document.getElementById("username").value.trim();
+        var repoName = document.getElementById("repositoryName").value.trim();
+        var remoteRepoName = document.getElementById("remoteRepoName").value.trim();
+        var remoteRepoUsername = document.getElementById("remoteRepoUsername").value.trim();
+        window.location.href = "repository.html?"
+            + "username=" + username
+            + "&repositoryName=" + repoName
+            + "&remoteRepoName=" + remoteRepoName
+            + "&remoteRepoUsername=" + remoteRepoUsername;
+    }
+</script>
+</body>
+</html>

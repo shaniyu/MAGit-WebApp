@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Commit</title>
+
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" language="javascript">
+
+        //This function removes all the children of the element that is passed as a parameter
+        function removeChildrenOfElement(currElement){
+            while (currElement.firstChild) {
+                currElement.removeChild(currElement.firstChild);
+            }
+        }
+
+        function setPageParamsAndTitle()
+        {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+            var remoteRepoName = params.get("remoteRepoName");
+            var remoteRepoUsername = params.get("remoteRepoUsername");
+            var sha1 = params.get("sha1");
+
+
+            document.getElementById("username").value = username.trim();
+            document.getElementById("repositoryName").value = repoName.trim();
+            document.getElementById("remoteRepoName").value = remoteRepoName.trim();
+            document.getElementById("remoteRepoUsername").value = remoteRepoUsername.trim();
+            document.getElementById("sha1").value = sha1; // no need to trim sha1, it has no spaces and special chars
+
+            var commitTitle = "Repository: " + repoName + ", Commit " + sha1 + ":"; // setting title to the sha1
+            $('#commitTitle').empty();
+            $('#commitTitle').append(commitTitle);
+        }
+
+        function showFileContent() {
+
+            var shouldColapse = this.getAttribute("data-shouldColapse"); //will say if the current click on the list item will close the text area and button or show them
+            var fileContent = this.getAttribute("data-fileContent");
+            var fileFullPath = this.getAttribute("data-fileFullPath")
+
+            if(shouldColapse == "true"){
+                //Removing all text area and button after the operation is done (colapsing the list item)
+                var innerDiv = document.getElementById(fileFullPath + "-div");
+                removeChildrenOfElement(innerDiv);
+                this.setAttribute("data-shouldColapse", false); //Setting the colapse value for the next click to show textarea and buttons
+            }
+            else{ //Should show text area and buttons
+
+                this.setAttribute("data-shouldColapse", true); //Setting the colapse value for the next click to remove textarea and buttons
+
+                //Creating textArea to display file content
+                var textArea = document.createElement("textarea");
+                textArea.setAttribute("id", fileFullPath + "-textArea");
+                textArea.rows = "7";
+                textArea.cols = "50";
+                var textAreaTextNode = document.createTextNode(fileContent);
+                textArea.readOnly = true;
+                textArea.appendChild(textAreaTextNode);
+
+
+                //Adding all elements to the empty div we created before
+                var emptyDivToShowContent = document.getElementById(fileFullPath+"-div");
+                var linebreak = document.createElement("br");
+                emptyDivToShowContent.append(linebreak);
+                emptyDivToShowContent.append(textArea);
+            }
+        }
+
+        function createFileListItem(index, dataJson){
+
+            var listItem = document.createElement("LI");
+            var textnode = document.createTextNode(dataJson.fileName.trim());
+            var emptyDivToShowContent = document.createElement("div");
+            listItem.setAttribute("data-fileContent", dataJson.fileContent.trim());
+            listItem.setAttribute("data-fileFullPath", dataJson.fileFullPath.trim());
+            listItem.setAttribute("id", dataJson.fileFullPath.trim() + "-li");
+
+            //This attribute will tell us if a click on the list item
+            // should open the textarea and button or should collapse it
+            listItem.setAttribute("data-shouldColapse", false);
+            listItem.onclick = showFileContent;
+            listItem.appendChild(textnode);
+
+            //Adding the list item to the oredered list
+            $('#commitFilesOL').append(listItem);
+            var linebreak = document.createElement("br");
+            $('#commitFilesOL').append(linebreak);
+            emptyDivToShowContent.setAttribute("id", dataJson.fileFullPath.trim() +"-div");
+            $('#commitFilesOL').append(emptyDivToShowContent);
+        }
+
+
+        function showCommitFilesAndFolders()
+        {
+            // need to get all the files of this sha1 commit to show them and their content
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+            var sha1 = params.get("sha1");
+
+            $.ajax({
+                data: "username=" + username + "&repositoryName=" + repoName + "&commitSha1=" + sha1,
+                url: "getCommitFiles",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#errorLbl").text(""); // disable the error label
+                    $('#commitFilesOL').children().remove();
+                    $.each(objectsDataArray || [], createFileListItem);
+                }
+            });
+        }
+
+        // is called on load
+        $(function() {
+            setPageParamsAndTitle();
+            showCommitFilesAndFolders();
+        });
+
+    </script>
+
+
+    <script>
+        function goBack() {
+            var username = document.getElementById("username").value.trim();
+            var repoName = document.getElementById("repositoryName").value.trim();
+            var remoteRepoName = document.getElementById("remoteRepoName").value.trim();
+            var remoteRepoUsername = document.getElementById("remoteRepoUsername").value.trim();
+            window.location.href = "repository.html?"
+                + "username=" + username
+                + "&repositoryName=" + repoName
+                + "&remoteRepoName=" + remoteRepoName
+                + "&remoteRepoUsername=" + remoteRepoUsername;
+        }
+    </script>
+
+
+    <style type="text/css">
+        body, button {
+            font-family: Comic Sans MS;
+        }
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            background-color: rgba(224, 241, 231, 0.33);
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<input type="hidden" value="" id="username" />
+<input type="hidden" value="" id="repositoryName" />
+<input type="hidden" value="" id="remoteRepoName" />
+<input type="hidden" value="" id="sha1" />
+<input type="hidden" value="" id="remoteRepoUsername" />
+
+
+<button onclick="goBack()">Back to my account</button>
+
+<h2 id= "commitTitle"  style="text-align: center; color: #ff621f; "></h2>
+
+<h3 id= "filesTitle" style="text-align: center; color: #000000;" value="Files on this commit:"> </h3>
+
+<h3 style="text-align: center; color: #000000; ">Click any file to see its content</h3>
+<h3 id="errorLbl" style="text-align: center; color: #000000; "></h3>
+
+<div id="commitFiles">
+    <ol id="commitFilesOL">
+
+    </ol>
+</div>
+
+
+<body>
+
+
+
+
+</body>
+</html>

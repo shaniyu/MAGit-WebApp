@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Repositories</title>
+
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+
+
+    <script type="text/javascript" language="javascript">
+        //get and show all the repositories the current user has
+        function getReposList() {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+
+            var otherUserName = params.get("otherusername");
+
+            // save both constants variables to the hidden variables of the page
+            document.getElementById("username").value = encodeURIComponent(username.trim());
+            document.getElementById("otherUserName").value = encodeURIComponent(otherUserName.trim());
+
+            //Show otherusername's repositories title
+            $('#otherUserNameTitle').empty();
+            $('#otherUserNameTitle').append(otherUserName + "'s ");
+
+            $.ajax({
+                data: "requestType=getRepos" + "&username=" + otherUserName,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#resultOfLoadRepos").text("Failed to get result from server ");
+                },
+                success: function(objectsDataArray) {
+                    $('#userRepositories').children().remove();
+                    $.each(objectsDataArray || [], createRepoLink);
+                }
+            });
+        }
+
+        function fork(button){
+            var repoToForkName = JSON.parse(decodeURIComponent(button.getAttribute("data-repoName")));
+            var userToForkFrom = decodeURIComponent($('#otherUserName').val());
+            var username = decodeURIComponent($('#username').val());
+
+
+            $.ajax({
+                data: "username=" + username + "&usernameToFork=" +userToForkFrom + "&repoNameToFork=" + repoToForkName,
+                url: "forkRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLbl").text("Failed to get result from server");
+                },
+                success: function(response) {
+                    if(response.success == true)
+                    {
+                        alert("You forked " + repoToForkName);
+                        $("#errorLbl").text("");
+                    }
+                    else
+                    {
+                        var errorMessage = response.errorMessage;
+                        $("#errorLbl").text("Failed to fork " + repoToForkName + "  reason: " +errorMessage);
+                    }
+                }
+            });
+
+        }
+
+        function createRepoLink(index, dataJson) {
+            var repositoryNameStr = dataJson.repositoryName;
+            var activeBranchNameStr = dataJson.activeBranchName;
+            var branchesNumberVal = dataJson.branchesNumber;
+            var dateOfLastChangeStr = dataJson.dateOfLastChange == null ? "" : dataJson.dateOfLastChange;
+            var lastCommitMessageStr = dataJson.lastCommitMessage == null ? "" : dataJson.lastCommitMessage;
+
+            var repoNameStr = encodeURIComponent(repositoryNameStr.trim());
+            var remoteRepoNameStr = encodeURIComponent(dataJson.remoteRepoName).trim();
+            var userNameStr = encodeURIComponent($("#username").val().trim());
+
+            //otherUserName
+
+            var newRepo = "<tr>" +
+                "<td>"+ repositoryNameStr +"</td>" +
+                "<td>"+ activeBranchNameStr+"</td>"+
+                "<td>"+branchesNumberVal+"</td>"+
+                "<td>"+dateOfLastChangeStr+"</td>"+
+                "<td>"+lastCommitMessageStr+"</td>"+
+                "<td>" +
+                    "<button type='button'" +
+                    "onclick='fork(this);'" +
+                    "data-repoName=" + encodeURIComponent(JSON.stringify(repositoryNameStr)) +
+                    " class='btn btn-default'>"+
+                    "<span class='glyphicon glyphicon-remove' />"+
+                    "Fork</button>" +
+                "</td>" +
+                "</tr>";
+
+            $('#userRepositories').append(newRepo);
+        }
+
+    </script>
+
+    <script type="text/javascript" language="javascript">
+
+        // get and show all repositories of the chosen user
+        $(function() {
+            getReposList();
+            setInterval(getReposList, 2000);
+        });
+
+    </script>
+
+    <style type="text/css">
+        body, button, input, select, textarea, submit {
+            font-family: Comic Sans MS;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+        table#reposTable{
+            background-color: rgba(198, 231, 241, 0.33);
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<input type="hidden" value="" id="username" />
+<input type="hidden" value="" id="otherUserName" />
+
+
+<button onclick="goBack()">Back to my account</button>
+<h1 style="color: #ff621f ; text-align: center; "><span id="otherUserNameTitle"></span>repositories:</h1>
+<h3 id="errorLbl" style="text-align: center; color: #000000; "></h3>
+
+<div id="resultOfLoadRepos"></div>
+<div>
+    <table id="reposTable">
+        <thead>
+        <tr>
+            <td>Repository name</td>
+            <td>Active branch</td>
+            <td>Branches number</td>
+            <td>Last commit date</td>
+            <td>Last commit message</td>
+            <td>Fork</td>
+        </tr>
+        </thead>
+
+        <tbody id="userRepositories">
+
+        </tbody>
+    </table>
+</div>
+<script>
+    function goBack() {
+        var username = document.getElementById("username").value.trim();
+        window.location.href = "UserPage.html?username=" + username;
+    }
+</script>
+</body>
+</html>

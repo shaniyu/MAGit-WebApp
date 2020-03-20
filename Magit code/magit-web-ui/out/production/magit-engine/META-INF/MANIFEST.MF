@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Class-Path: commons-codec-1.12.jar AncestorFinder (1).jar commons-io-2
+ .6.jar
+Main-Class: 
+

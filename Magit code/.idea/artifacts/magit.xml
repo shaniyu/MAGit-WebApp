@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="magit">
+    <output-path>$PROJECT_DIR$/magit-web-ui/out/artifacts/magit</output-path>
+    <root id="archive" name="magit.war">
+      <element id="artifact" artifact-name="magit-web-ui:war exploded" />
+    </root>
+  </artifact>
+</component>

@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Repository</title>
+    <script type="text/javascript" src="jquery-2.0.3.min.js"></script>
+
+
+    <script type="text/javascript" language="javascript">
+
+        function showRepoTitleAndSetPageParams()
+        {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+
+            document.getElementById("username").value = username.trim();
+            document.getElementById("repositoryName").value = repoName.trim();
+
+            var repoTitleStr = "Repository:  " + repoName; // setting title to the page of a repo
+            $('#repoTitle').empty();
+            $('#repoTitle').append(repoTitleStr);
+        }
+
+        function showBranchesTable() {
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+
+            // get and show branches table with its data
+            $.ajax({
+                data: "requestType=getBranchesInfo" + "&username=" + username + "&repositoryName=" + repoName,
+                url: "loadRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#branchesTableBody").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $('#branchesTableBody').children().remove();
+                    $.each(objectsDataArray || [], createBranchRowInTable);
+                }
+            });
+        };
+
+        function addBranchesToPRSpinners(index, branch){
+
+            if(branch.isRemote == true){
+
+                $('#baseBranches').append(new Option(branch.branchName, branch.branchName, true, true));
+            }
+            else{
+                $('#targetBranches').append(new Option(branch.branchName, branch.branchName, true, true));
+            }
+        }
+
+        function handleCreatePullRequest(){
+
+            var pullRequestMessage = $('#pullRequestMessage').val();
+
+            //No need to check if there is a selected option in the spinners because there is always a selected option by default
+            //Checking that the pull request message doesn't contain only white spaces
+            if((jQuery.trim(pullRequestMessage)).length==0){
+                $("#errorLabel").text("Pull request message can't be empty");
+            }
+            else{
+                pullRequestMessage = encodeURIComponent(pullRequestMessage);
+                var username = encodeURIComponent($('#username').val());
+                var repositoryName = encodeURIComponent($('#repositoryName').val());
+                var selectedTargetBranch = encodeURIComponent($('#targetBranches').val());
+                var selectedBaseBranch = encodeURIComponent($('#baseBranches').val());
+                var remoteRepoUsername = encodeURIComponent($('#remoteRepoUsername').val());
+
+                $.ajax({
+                    data: "requestType=createPullRequest"
+                        + "&username=" + username
+                        + "&repositoryName=" + repositoryName
+                        + "&remoteRepoUsername=" + remoteRepoUsername
+                        + "&targetBranch=" + selectedTargetBranch
+                        + "&baseBranch=" + selectedBaseBranch
+                        + "&pullRequestMessage=" + pullRequestMessage,
+                    url: "pullrequest",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        $("#errorLabel").text("Failed to get result from server " + e);
+                    },
+                    success: function(serverResponse) {
+                        $("#errorLabel").text("");
+
+                        //Clearing the create pull request details
+                        var pullRequestDiv = document.getElementById("pullRequestDiv");
+                        pullRequestDiv.innerHTML = "";
+                        //Notifying the user that the pull request was sent
+                        if(serverResponse.success == true)
+                        {
+                            alert(serverResponse.errorMessage);
+                            showBranchesTable(); //In order to see the new remote branch that was created after the PR
+                        }
+                        else
+                        {
+                            $("#errorLabel").text("Pull request failed, " + serverResponse.errorMessage);
+                        }
+                    }
+                });
+            }
+        }
+
+        function createPullRequest()
+        {
+            var pullRequestDiv = document.getElementById("pullRequestDiv");
+
+            //Add all pull requst details only if the div doesn't have these details yet
+            if(pullRequestDiv.hasChildNodes() == false){
+                var targetBranchesSelect = document.createElement("select");
+                targetBranchesSelect.id = "targetBranches";
+                targetBranchesSelect.style.marginRight = "5px";
+
+                var baseBranchesSelect = document.createElement("select");
+                baseBranchesSelect.id = "baseBranches";
+                baseBranchesSelect.style.marginRight = "5px";
+
+
+                var pullRequestMessageInput = document.createElement("input");
+                pullRequestMessageInput.id = "pullRequestMessage";
+                pullRequestMessageInput.style.marginRight = "5px";
+
+                //Create the pull request button
+                var createPullRequestButton = document.createElement("button");
+                createPullRequestButton.id = "createPullRequestBtn";
+                createPullRequestButton.onclick = handleCreatePullRequest;
+                createPullRequestButton.textContent = "Create";
+                createPullRequestButton.style.marginRight = "5px";
+
+                //Create the cancel button
+                var cancelPRBButton = document.createElement("button");
+                cancelPRBButton.id = "cancelPRBtn";
+                cancelPRBButton.textContent = "Cancel";
+                cancelPRBButton.onclick = function() {
+                    var pullRequestDiv = document.getElementById("pullRequestDiv");
+                    pullRequestDiv.innerHTML = "";
+                }
+
+                //Adding all elements to the div
+                var breakline = document.createElement("br");
+                pullRequestDiv.appendChild(breakline);
+
+                var targetBarnchesTxt = document.createElement("text");
+                targetBarnchesTxt.textContent = "Target branch:";
+                targetBarnchesTxt.style.fontSize = "small";
+                pullRequestDiv.appendChild(targetBarnchesTxt);
+                pullRequestDiv.appendChild(targetBranchesSelect);
+
+                var baseBranchesTxt = document.createElement("text");
+                baseBranchesTxt.textContent = "Base branch:";
+                baseBranchesTxt.style.fontSize = "small";
+                pullRequestDiv.appendChild(baseBranchesTxt);
+                pullRequestDiv.appendChild(baseBranchesSelect);
+
+                var PRMessageTxt = document.createElement("text");
+                PRMessageTxt.textContent = "Pull request message:";
+                PRMessageTxt.style.fontSize = "small";
+                pullRequestDiv.appendChild(PRMessageTxt);
+                pullRequestDiv.appendChild(pullRequestMessageInput);
+
+                pullRequestDiv.appendChild(createPullRequestButton);
+                pullRequestDiv.appendChild(cancelPRBButton);
+
+                var username = document.getElementById("username").value;
+                var repoName = document.getElementById("repositoryName").value;
+                // get all branches from server, and initialize both drop down lists
+                $.ajax({
+                    data: "requestType=getBranchesInfo" + "&username=" + username + "&repositoryName=" + repoName,
+                    url: "loadRepo",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                    },
+                    success: function(BranchesArray) {
+                        $("#branchesErrorLabel").text("");
+                        $.each(BranchesArray || [], addBranchesToPRSpinners);
+                    }
+                });
+            }
+        }
+
+        function performPull() {
+            // send request for pull servlet and handle response
+            var username = document.getElementById("username").value;
+            var repoName = document.getElementById("repositoryName").value;
+
+            $.ajax({
+                data: "username=" + username + "&repositoryName=" + repoName,
+                url: "pull",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#errorLabel").text("Failed to get result from server " + e);
+                },
+                success: function(response) {
+                    if(response.success == true){
+                        // pull succeed
+                        $("#errorLabel").text("");
+                        // update UI
+                        showBranchesTable();
+                        showCommitsTable();
+                        alert("Pull was done successfully");
+                    }
+                    else{
+                       var errorMsg = response.errorMessage;
+                        $("#errorLabel").text("Pull failed.  reason: " + errorMsg);
+                    }
+                }
+            });
+        }
+
+        function addBranchesToPushSpinner(index, branch){
+
+            if(branch.isRemote == false && branch.isRTB == false){
+
+                $('#branchToPushSelect').append(new Option(branch.branchName, branch.branchName, true, true));
+            }
+        }
+
+        function handlePushBranch(){
+
+            //No need to check if there is a selected option in the spinner because there is always a selected option by default
+            //Checking that the pull request message doesn't contain only white spaces
+            var username = encodeURIComponent($('#username').val());
+            var repositoryName = encodeURIComponent($('#repositoryName').val());
+            var selectedBranchToPush = encodeURIComponent($('#branchToPushSelect').val());
+            var remoteRepoUsername = encodeURIComponent($('#remoteRepoUsername').val());
+
+            $.ajax({
+                data: "requestType=pushBranchToRemote"
+                    + "&username=" + username
+                    + "&repositoryName=" + repositoryName
+                    + "&remoteRepoUsername=" + remoteRepoUsername
+                    + "&branchToPush=" + selectedBranchToPush,
+                url: "pullrequest",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    $("#errorLabel").text("Failed to get result from server " + e);
+                },
+                success: function(serverResponse) {
+                    $("#errorLabel").text("");
+
+                    //Clearing the push div details
+                    var pushDiv = document.getElementById("pushDiv");
+                    pushDiv.innerHTML = "";
+                    //Notifying the user that the pull request was sent
+                    if(serverResponse.success == true)
+                    {
+                        alert(serverResponse.errorMessage);
+                        showBranchesTable(); //In order to see the new remote branch that was created after the push
+                    }
+                    else
+                    {
+                        $("#errorLabel").text("Push failed, " + serverResponse.errorMessage);
+                    }
+                }
+            });
+        }
+
+        function performPushBranch(){
+
+            var pushDiv = document.getElementById("pushDiv");
+
+            //Add all push details only if the div doesn't have these details yet
+            if(pushDiv.hasChildNodes() == false){
+                var branchToPushSelect = document.createElement("select");
+                branchToPushSelect.id = "branchToPushSelect";
+                branchToPushSelect.style.marginRight = "5px";
+
+
+                //Create the push button
+                var pushButton = document.createElement("button");
+                pushButton.id = "pushBtn";
+                pushButton.onclick = handlePushBranch;
+                pushButton.textContent = "Push";
+                pushButton.style.marginRight = "5px";
+
+                //Create the cancel button
+                var cancelPushButton = document.createElement("button");
+                cancelPushButton.id = "cancelPushBtn";
+                cancelPushButton.textContent = "Cancel";
+                cancelPushButton.onclick = function() {
+                    pushDiv.innerHTML = "";
+                }
+
+                //Adding all elements to the div
+                var breakline = document.createElement("br");
+                pushDiv.appendChild(breakline);
+
+                var branchToPushTxt = document.createElement("text");
+                branchToPushTxt.textContent = "Branch to push:";
+                branchToPushTxt.style.fontSize = "small";
+                pushDiv.appendChild(branchToPushTxt);
+                pushDiv.appendChild(branchToPushSelect);
+
+                pushDiv.appendChild(pushButton);
+                pushDiv.appendChild(cancelPushButton);
+
+                var username = document.getElementById("username").value;
+                var repoName = document.getElementById("repositoryName").value;
+                // get all branches from server, and initialize branchToPush dropdown list
+                $.ajax({
+                    data: "requestType=getBranchesInfo" + "&username=" + username + "&repositoryName=" + repoName,
+                    url: "loadRepo",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                    },
+                    success: function(BranchesArray) {
+                        $("#branchesErrorLabel").text("");
+                        $.each(BranchesArray || [], addBranchesToPushSpinner);
+                    }
+                });
+            }
+        }
+
+        function getRemoteRepoInfo()  {
+            var params = new URLSearchParams(document.location.search);
+            var remoteRepoName = params.get("remoteRepoName");
+            document.getElementById("remoteRepoName").value = remoteRepoName.trim();
+
+            if ( remoteRepoName !== "undefined")
+            {
+                // setting remote repository title
+                var remoteRepoUsername = params.get("remoteRepoUsername");
+                document.getElementById("remoteRepoUsername").value = remoteRepoUsername.trim();
+
+                var remoteRepoTitleStr = "Remote repository name:  " + remoteRepoName + " owner: " + remoteRepoUsername;
+
+                $('#remoteRepoTitle').empty();
+                $('#remoteRepoTitle').append(remoteRepoTitleStr);
+
+                var CreatePushButton = document.createElement("button");
+                CreatePushButton.id = 'CreatePushButton';
+                CreatePushButton.innerHTML = "Push a branch";
+                var pushDiv = document.createElement("div");
+                pushDiv.id = "pushDiv";
+
+                var PRbutton = document.createElement("button");
+                PRbutton.id = 'PRbutton';
+                PRbutton.innerHTML = "Create pull request";
+
+                var pullRequestDiv = document.createElement("div");
+                pullRequestDiv.id = 'pullRequestDiv';
+
+
+                var Pullbutton = document.createElement("button");
+                Pullbutton.innerHTML = "Pull";
+
+                // 2. Append under remote repository title
+                var remoteTitle = document.getElementById("remoteRepoTitle");
+                var breakline = document.createElement("br");
+                remoteTitle.appendChild(breakline);
+                remoteTitle.appendChild(CreatePushButton);
+                remoteTitle.appendChild(pushDiv);
+                remoteTitle.appendChild(PRbutton);
+                remoteTitle.appendChild(pullRequestDiv);
+                //pullRequestDiv.appendChild(PRbutton);
+                remoteTitle.appendChild(Pullbutton);
+
+                // 3. Add event handler for PR button
+                PRbutton.addEventListener ("click", createPullRequest );
+
+                // 3. Add event handler for pull button
+                Pullbutton.addEventListener ("click", performPull);
+
+                //Add event handler for push button
+                CreatePushButton.addEventListener("click", performPushBranch);
+            }
+
+        };
+
+        function createBranchRowInTable(index, dataJson) {
+            var branchNameStr = dataJson.branchName;
+            var branchCommitSha1Str = dataJson.branchSha1;
+            var branchCommitMessageStr = dataJson.commitMessage;
+            var isHeadBranchVal = dataJson.isHead;
+            var branchNameUrl = encodeURIComponent(branchNameStr.trim());
+
+            var newRepo = "<tr>" +
+                "<td>"+ branchNameStr +"</td>"+
+                "<td>"+ branchCommitSha1Str +"</td>"+
+                "<td>"+ branchCommitMessageStr +"</td>";
+
+            // adding delete and checkout button to branches which are not head branch
+            if (! isHeadBranchVal)
+            {
+                newRepo +=  "<td>" +
+                    "<button type='button'" +
+                    "onclick='deleteBranch(this);'" +
+                    "data-branchName="+ branchNameUrl +" "+
+                    "class='btn btn-default'>"+
+                    "<span class='glyphicon glyphicon-remove' />"+
+                    "delete</button>" +
+                "</td>";
+
+                newRepo +=  "<td>" +
+                    "<button type='button'" +
+                    "onclick='checkoutBranch(this);' " +
+                    "data-branchName="+ branchNameUrl +" "+
+                    "class='btn btn-default'>"+
+                    "<span class='glyphicon glyphicon-remove' />"+
+                    "checkout</button>" +
+                    "</td>";
+            }
+            else
+            {
+                // this branch is the HEAD add edit WC button to it
+                newRepo += "<td colspan='2'>"+
+                    "<button type ='button'" +
+                    "onclick='editWCFile(this);'" +
+                    "data-commitSha1="+branchCommitSha1Str+" "+
+                    "class='btn btn-default'>"+
+                    "<span class='glyphicon glyphicon-remove' />"+
+                    "Edit Files</button>" +
+                    "</td>";
+                    "</button>" +
+                    "</td>";
+            }
+            
+            newRepo += "</tr>";
+
+            $('#branchesTableBody').append(newRepo);
+        }
+        
+        function editWCFile(button){
+            var headBranchCommitSha = button.getAttribute("data-commitSha1");
+            var username = document.getElementById("username").value.trim();
+            var repoName = document.getElementById("repositoryName").value.trim();
+            var remoteRepoName = encodeURIComponent(document.getElementById("remoteRepoName").value.trim());
+            var remoteRepoUsername = encodeURIComponent(document.getElementById("remoteRepoUsername").value.trim());
+            window.location.href = "editWCFiles.html?"
+                + "username=" + username
+                + "&repositoryName=" + repoName
+                + "&commitSha1=" + headBranchCommitSha
+                + "&remoteRepoName=" + remoteRepoName
+                + "&remoteRepoUsername=" + remoteRepoUsername;
+        }
+
+        function deleteBranch(button) {
+            var branchToDelete = button.getAttribute("data-branchName");
+            //branchToDelete = encodeURIComponent(branchToDelete);
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+            $.ajax({
+                data: "requestType=deleteBranch" + "&username=" + username + "&repositoryName=" + repoName + "&branchName=" + branchToDelete,
+                url: "loadRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#branchesErrorLabel").text("");
+                    if(objectsDataArray.successValue){
+                        showBranchesTable();
+                    }
+                    else{
+                        alert(objectsDataArray.errorMessage);
+                    }
+                }
+            });
+        }
+
+        function handleOpenChangesOnCheckout(username, repoName, branchToCheckoutTo){
+
+            var txt;
+            var r = confirm("You have some open changes made to files on this branch\n"+
+                "Do you want to commit them later and not checkout, or delete them and checkout anyway?\n" +
+                "\nWarning!\nIf you delete the changes, you will lost those it and could not restore it.\npress Ok to checkout, or cancel.");
+            if (r == true) {
+                $.ajax({
+                    data: "requestType=handleOpenChangesOnCheckout" + "&username=" + username + "&repositoryName=" + repoName + "&branchName=" + branchToCheckoutTo,
+                    url: "loadRepo",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                    },
+                    success: function(objectsDataArray) {
+                        $("#branchesErrorLabel").text("");
+                        if(objectsDataArray.successValue){
+                            showBranchesTable();
+                        }
+                        else{
+                            alert(objectsDataArray.errorMessage);
+                        }
+                    }
+                });
+            }
+        }
+
+        function handleCheckoutToRTB(username, repoName, branchToCheckoutTo){
+            var r = confirm("You can't checkout to remote branch,\n" +
+                "Would you like to add new remote tracking branch and checkout to it instead?");
+            if (r == true) {
+                $.ajax({
+                    data: "requestType=handleRTB" + "&username=" + username + "&repositoryName=" + repoName + "&branchName=" + branchToCheckoutTo,
+                    url: "loadRepo",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                    },
+                    success: function(objectsDataArray) {
+                        $("#branchesErrorLabel").text("");
+                        if(objectsDataArray.successValue){
+                            showBranchesTable();
+                        }
+                        else{
+                            alert(objectsDataArray.errorMessage);
+                        }
+                    }
+                });
+            }
+        }
+
+        function checkoutBranch(button) {
+            var branchToCheckoutTo = button.getAttribute("data-branchName");
+            //branchToCheckoutTo = encodeURIComponent(branchToCheckoutTo);
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+            $.ajax({
+                data: "requestType=checkoutToBranch" + "&username=" + username + "&repositoryName=" + repoName + "&branchName=" + branchToCheckoutTo,
+                url: "loadRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#branchesErrorLabel").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#branchesErrorLabel").text("");
+                    if(objectsDataArray.successValue){
+                        if(objectsDataArray.errorMessage == "RTB"){
+                            handleCheckoutToRTB(username, repoName, branchToCheckoutTo);
+                        }
+                        else if (objectsDataArray.errorMessage == "OpenChanges"){
+                            handleOpenChangesOnCheckout(username, repoName, branchToCheckoutTo);
+                        }
+                        else{
+                            showBranchesTable();
+                            showCommitsTable();
+                        }
+                    }
+                    else{
+                        alert(objectsDataArray.errorMessage);
+                    }
+                }
+            });
+        }
+
+    </script>
+
+
+    <script type="text/javascript" language="javascript">
+
+        function updateOpenChangesOnWCTitle()
+        {
+            // get and show if the WC is dirty ( open changes)
+            var params = new URLSearchParams(document.location.search);
+            var username = params.get("username");
+            var repoName = params.get("repositoryName");
+
+            // get working copy state from the server
+            $.ajax({
+                data: "requestType=getWCInfo" + "&username=" + username + "&repositoryName=" + repoName,
+                url: "loadRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#wcTitle").text("Failed to check working copy state");
+                },
+                success: function(result) {
+                    $('#wcTitle').empty();
+                    var isThereOpenChanges=result;
+                    if (isThereOpenChanges)
+                    {
+                        $('#wcTitle').append("There are open changes on the working copy");
+                    }
+                    else
+                    {
+                        $('#wcTitle').append("No open changes on working copy");
+                    }
+                }
+            });
+        }
+
+        function showCommitsTable()
+        {
+            var username = document.getElementById("username").value;
+            var repoName = document.getElementById("repositoryName").value;
+
+            // get and show branches table with its data
+            $.ajax({
+                data: "requestType=getCommitsInfo" + "&username=" + username + "&repositoryName=" + repoName,
+                url: "loadRepo",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 4000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    $("#commitsErrorLabel").text("Failed to get result from server " + e);
+                },
+                success: function(objectsDataArray) {
+                    $("#commitsErrorLabel").text("");
+                    $('#commitsTableBody').children().remove();
+                    $.each(objectsDataArray || [], createCommitRowInTable);
+                }
+            });
+        }
+
+        function createCommitRowInTable(index, dataJson) {
+            var sha1 = dataJson.commitSha1;
+            var message = dataJson.commitMessage;
+            var creator = dataJson.commitCreatedBy;
+            var date = dataJson.dateOfCommit;
+            var branchesPointsToThisCommit = dataJson.branchesPointsToThisCommit;
+
+            var username = encodeURIComponent(document.getElementById("username").value.trim());
+            var repoName = encodeURIComponent(document.getElementById("repositoryName").value.trim());
+            var remoteRepoName = encodeURIComponent(document.getElementById("remoteRepoName").value.trim());
+            var remoteRepoUsername = encodeURIComponent(document.getElementById("remoteRepoUsername").value.trim());
+
+            var newCommit = "<tr>" +
+                "<td><a href=commit.html?username="+username+"&repositoryName="+repoName+"&remoteRepoName=" +remoteRepoName+ "&sha1=" +sha1+"&remoteRepoUsername="+remoteRepoUsername+">"+sha1+"</a></td>"+
+                "<td>"+message+"</td>"+
+                "<td>"+creator+"</td>"+
+                "<td>"+date+"</td>";
+
+            // adding delete and checkout button to branches which are not head branch
+            if ( branchesPointsToThisCommit !=="undefined")
+            {
+                if (branchesPointsToThisCommit.length === 0 )
+                {
+                    newCommit += "<td> - </td>";
+                }
+                else {
+                    newCommit += "<td>";
+                    for ( var i = 0 ; i < branchesPointsToThisCommit.length; i++)
+                    {
+                        if (i === 0)
+                        {
+                            newCommit +=  branchesPointsToThisCommit[i];
+                        }
+                        else
+                        {
+                            newCommit +=  ", " +branchesPointsToThisCommit[i];
+                        }
+                    }
+                    newCommit += "</td>";
+                }
+            }
+            newCommit += "</tr>";
+
+            $('#commitsTableBody').append(newCommit);
+        }
+
+        function addNewBranch()
+        {
+            var newBranchName = document.getElementById("newBranchName").value;
+
+            //Checking that the new branch name doesn't contain only white spaces
+            if ((jQuery.trim(newBranchName)).length==0)
+            {
+                $("#newBranchErrorLabel").text("New branch name is empty");
+            }
+            else
+            {
+                var username = document.getElementById("username").value;
+                var repoName = document.getElementById("repositoryName").value;
+                var newBranchNameStr = encodeURIComponent(newBranchName.trim());
+
+                // trim new branch name, might contain spaces
+                $("#newBranchErrorLabel").text("");
+
+                $.ajax({
+                    data: "requestType=addNewBranch" + "&username=" + username + "&repositoryName=" + repoName + "&branchName=" + newBranchNameStr,
+                    url: "loadRepo",
+                    method:'GET',
+                    processData: false, // Don't process the files
+                    contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                    timeout: 4000,
+                    error: function(e) {
+                        console.error("Failed to submit");
+                        $("#newBranchErrorLabel").text("Failed to get result from server ");
+                    },
+                    success: function(response) {
+                        if (response.success == true)
+                        {
+                            // branch added
+                            showBranchesTable();
+                            $("#newBranchName").val("");
+                        }
+                        else
+                        {
+                            $("#newBranchErrorLabel").text(response.errorMessage);
+                        }
+                    }
+                });
+            }
+        }
+
+        function createMessageEntry (message){
+            var userSent = message.usernameFrom;
+            var repositoryName = message.repositoryName;
+            var messageSendTime = message.messageDate;
+            var content = message.messageContent;
+
+            if (repositoryName != "")
+            {
+                //Checking if the message is a PR request
+                if(message.messageStatus != null) //notification about PR
+                {
+                    //PR message
+                    var prMessageStatus = message.messageStatus;
+                    var targetBranch = message.targetBranch;
+                    var baseBranch = message.baseBranch;
+                    var totalMessage = messageSendTime + " Pull Request- " +
+                        " From: " +  userSent + ", " +
+                        " Repository: " + repositoryName  + ", " +
+                        "Status: " + prMessageStatus + ", " +
+                        "Target branch: " + targetBranch + ", " +
+                        "Base branch: " + baseBranch + ",   " +
+                        content;
+                }
+                else{// notification about a repository
+                    var totalMessage = messageSendTime +
+                        " From: " +  userSent + ", " +
+                        "Repository: " + repositoryName  + ",   " +
+                        content;
+                }
+            }
+            else
+            {
+                // some other general notification
+                var totalMessage = messageSendTime + " From: "  + userSent + ",   " + content;
+            }
+
+            return $("<span class=\"success\">").append(totalMessage);
+        }
+
+        function appendMessageEntry(index, entry){
+            var entryElement = createMessageEntry(entry);
+            $("#notificationsArea").append(entryElement).append("<br>");
+        }
+
+        //newNotifications = the added notifications represented with NotificationsAjaxRespinse class
+        function appendNotifications(newNotifications) {
+
+            // add the relevant entries
+            $.each(newNotifications || [], appendMessageEntry);
+
+            // handle the scroller to auto scroll to the end of the notifications area
+            var scroller = $("#notificationsArea");
+            var height = scroller[0].scrollHeight - $(scroller).height();
+            $(scroller).stop().animate({ scrollTop: height }, "slow");
+        }
+
+        function getUserNotifications(username, version)
+        {
+
+            // get updated notifications version from server, if it is not the notificationsVersion we have, get the delta
+            $.ajax(  {
+                data: "requestType=getNotifications" + "&username=" + username + "&notificationsVersion=" + version,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(serverResponse) {
+                    // server respond with all the new notifications that user haven't seen yet, show all of it
+                    appendNotifications(serverResponse.allNewMessages);
+                    document.getElementById("notificationsVersion").value = serverResponse.version;
+                }
+            });
+        }
+
+        function getUserNotificationsVersion()
+        {
+            var username = document.getElementById("username").value;
+            var version =  document.getElementById("notificationsVersion").value;
+
+            // get updated notifications version from server, if it is not the notificationsVersion we have, get the delta
+
+            $.ajax(  {
+                data: "requestType=getNotificationsVersion" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(versionInServer) {
+
+                    if(versionInServer != version)
+                    {
+                        // then should update the version, get all the new messages from the server and show it
+                        getUserNotifications(username, version);
+                    }
+                }
+            });
+        }
+        function getUserNotificationsVersionAlreadySeen()
+        {
+            var username = document.getElementById("username").value;
+
+            $.ajax(  {
+                data: "requestType=getNotificationsVersionInClient" + "&username=" + username,
+                url: "loadUser",
+                method:'GET',
+                processData: false, // Don't process the files
+                contentType: false, // Set content type to false as jQuery will tell the server its a query string request
+                timeout: 2000,
+                error: function(e) {
+                    console.error("Failed to submit");
+                    // print error message in hidden div and not in the table
+                    $("#notificationsError").text("Failed to get result from server " + e);
+                },
+                success: function(versionInClient) {
+                    document.getElementById("notificationsVersion").value = versionInClient;
+                    getUserNotificationsVersion();
+                }
+            });
+        }
+
+        $(function() {
+            showRepoTitleAndSetPageParams();
+            updateOpenChangesOnWCTitle();
+            getRemoteRepoInfo();
+            showBranchesTable();
+            showCommitsTable();
+            setInterval(updateOpenChangesOnWCTitle, 2000);
+            setInterval(showBranchesTable, 2000);
+            // get notification to show in this page
+            getUserNotificationsVersionAlreadySeen();
+            setInterval(getUserNotificationsVersion, 2000);
+        });
+
+    </script>
+
+
+    <style type="text/css">
+        body, button {
+            font-family: Comic Sans MS;
+        }
+
+        button{
+            margin: 5px;
+        }
+
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            background-color: rgba(224, 241, 231, 0.33);
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+        }
+
+        #notificationsArea {
+            overflow-y: scroll;
+            max-height: 120px;
+            width: 700px;
+        }
+    </style>
+
+</head>
+<body>
+<input type="hidden" value="" id="username" />
+<input type="hidden" value="" id="repositoryName" />
+<input type="hidden" value="" id="remoteRepoName" />
+<input type="hidden" value="" id="remoteRepoUsername" />
+<input type="hidden"  id="notificationsVersion" />
+
+
+<button onclick="goBack()">Back to my account</button>
+
+<h1 id= "repoTitle"  style="text-align: center; color: #ff621f; "> </h1>
+<h3 id= "wcTitle"  style="text-align: center; color: #ff621f; "> </h3>
+
+<h3 id= "remoteRepoTitle"  style="text-align: center; color: #000000; "> </h3>
+
+<h4 id= "errorLabel"  style="text-align: center; color: #000000; "> </h4>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-xs-4">
+            <div class="content">
+                <div id="notificationsWindow">
+                    <h3 style="color: #ff621f">Your notifications:</h3>
+                    <h4 style="color: #000000" id="notificationsError"></h4>
+                    <div id="notificationsArea" class="span6"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+
+<button onclick="addNewBranch()">Create a branch</button>
+<input type="text" id="newBranchName" size="20" ><br>
+<h4 id= "newBranchErrorLabel"></h4>
+
+<h4 style="color: #ff621f ">Branches:</h4>
+<h4 id= "branchesErrorLabel"></h4>
+
+<div>
+    <table id="branchesTable">
+        <thead>
+        <tr>
+            <td>Branch name</td>
+            <td>Commit sha1</td>
+            <td>Commit message</td>
+            <td>Delete branch</td>
+            <td>Checkout to branch</td>
+        </tr>
+        </thead>
+
+        <tbody id="branchesTableBody">
+
+        </tbody>
+    </table>
+</div>
+
+<h4 style="color: #ff621f ">Head commits:</h4>
+
+<h4 id= "commitsErrorLabel"></h4>
+
+<div>
+    <table id="commitsTable">
+        <thead>
+        <tr>
+            <td>Sha1</td>
+            <td>Message</td>
+            <td>Created by</td>
+            <td>Date</td>
+            <td>Branches points to this commit</td>
+        </tr>
+        </thead>
+
+        <tbody id="commitsTableBody">
+
+        </tbody>
+    </table>
+</div>
+
+<script>
+    function goBack() {
+        var username = document.getElementById("username").value.trim();
+        window.location.href = "UserPage.html?username=" + username;
+    }
+</script>
+
+
+
+</body>
+</html>
