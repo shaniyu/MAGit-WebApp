@@ -1,4 +1,4 @@
-<a style="background-color:#fff;padding:4px"><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
+<a style="border: 1px solid #000000;"><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
@@ -91,7 +91,7 @@ let generateProject = project => {
 
 --- -->
 
-### Clone
+## Clone
 
 - Clone this repo to your local machine using `https://github.com/shaniyu/MAGit-WebApp.git`
 
@@ -103,7 +103,7 @@ let generateProject = project => {
 Pay attention that you are downloading tomcat 8.5.x ! <br />
 Select the zip version suitable for your machine (windows\mac ...)
 
-### Setup
+## Setup
 
 - Unzip the tomcat zip file to any folder you like (e.g. c:\tomcat) <br />
 Navigate to c:\tomcat\conf\tomcat-users.xml and open it <br />
