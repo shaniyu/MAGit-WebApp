@@ -1,21 +1,25 @@
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/avisRepos.PNG" title="avisRepos"></a>
+<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
+<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
+<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
+<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
 
 <!-- [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com) -->
 
-***INSERT GRAPHIC HERE (include hyperlink in image)***
+<!--***INSERT GRAPHIC HERE (include hyperlink in image)***-->
 
-# Repository Title Goes Here
 
-> Subtitle or Short Description Goes Here
+# Magit web app
 
-> ideally one sentence
+> the app functions similar to git, includes features such as commit, clone, pull, push, merge, fetch,
+branch managing, load and export repositories using XML.
+The web app was developed using JavaScript, HTML, CSS, JQuery and web services via Apache
+Tomcat.
 
-> include terms/tags that can be searched
+<!-- > include terms/tags that can be searched -->
 
-**Badges will go here**
+<!-- **Badges will go here**
 
 - build status
-- issues (waffle.io maybe)
 - devDependencies
 - npm package
 - coverage
@@ -27,9 +31,9 @@
 
 [![Build Status](http://img.shields.io/travis/badges/badgerbadgerbadger.svg?style=flat-square)](https://travis-ci.org/badges/badgerbadgerbadger) [![Dependency Status](http://img.shields.io/gemnasium/badges/badgerbadgerbadger.svg?style=flat-square)](https://gemnasium.com/badges/badgerbadgerbadger) [![Coverage Status](http://img.shields.io/coveralls/badges/badgerbadgerbadger.svg?style=flat-square)](https://coveralls.io/r/badges/badgerbadgerbadger) [![Code Climate](http://img.shields.io/codeclimate/github/badges/badgerbadgerbadger.svg?style=flat-square)](https://codeclimate.com/github/badges/badgerbadgerbadger) [![Github Issues](http://githubbadges.herokuapp.com/badges/badgerbadgerbadger/issues.svg?style=flat-square)](https://github.com/badges/badgerbadgerbadger/issues) [![Pending Pull-Requests](http://githubbadges.herokuapp.com/badges/badgerbadgerbadger/pulls.svg?style=flat-square)](https://github.com/badges/badgerbadgerbadger/pulls) [![Gem Version](http://img.shields.io/gem/v/badgerbadgerbadger.svg?style=flat-square)](https://rubygems.org/gems/badgerbadgerbadger) [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org) [![Badges](http://img.shields.io/:badges-9/9-ff6799.svg?style=flat-square)](https://github.com/badges/badgerbadgerbadger)
 
-- For more on these wonderful ~~badgers~~ badges, refer to <a href="http://badges.github.io/badgerbadgerbadger/" target="_blank">`badgerbadgerbadger`</a>.
+- For more on these wonderful ~~badgers~~ badges, refer to <a href="http://badges.github.io/badgerbadgerbadger/" target="_blank">`badgerbadgerbadger`</a>. -->
 
-***INSERT ANOTHER GRAPHIC HERE***
+<!-- ***INSERT ANOTHER GRAPHIC HERE***
 
 [![INSERT YOUR GRAPHIC HERE](http://i.imgur.com/dt8AUb6.png)]()
 
@@ -55,9 +59,9 @@
 
 ![ttystudio GIF](https://raw.githubusercontent.com/chjj/ttystudio/master/img/example.gif)
 
----
+--- -->
 
-## Table of Contents (Optional)
+<!-- ## Table of Contents
 
 > If your `README` has a lot of info, section headers might be nice.
 
@@ -67,12 +71,12 @@
 - [Team](#team)
 - [FAQ](#faq)
 - [Support](#support)
-- [License](#license)
+- [License](#license) -->
 
 
 ---
 
-## Example (Optional)
+<!-- ## Example (Optional)
 
 ```javascript
 // code away!
@@ -85,50 +89,50 @@ let generateProject = project => {
 };
 ```
 
----
-
-## Installation
-
-- All the `code` required to get started
-- Images of what it should look like
+--- -->
 
 ### Clone
 
-- Clone this repo to your local machine using `https://github.com/fvcproductions/SOMEREPO`
+- Clone this repo to your local machine using `https://github.com/shaniyu/MAGit-WebApp.git`
+
+## Installation
+
+- Clone the repository to your local machine
+
+- Download tomcat from https://tomcat.apache.org/download-80.cgi. 
+Pay attention that you are downloading tomcat 8.5.x !
+Select the zip version suitable for your machine (windows\mac ...)
 
 ### Setup
 
-- If you want more syntax highlighting, format your code like this:
+- Unzip the tomcat zip file to any folder you like (e.g. c:\tomcat)
+Navigate to c:\tomcat\conf\tomcat-users.xml and open it 
+Add the below lines (within the <tomcat-users> element):
 
-> update and install this package first
+``` XML
+<role rolename="manager-gui"/>
+<role rolename="admin-gui"/>
+<user username="tomcat" password="tomcat" roles="manager-gui,admin-gui"/>
+``` 
 
-```shell
-$ brew update
-$ brew install fvcproductions
-```
+Save the file
 
-> now install npm and bower packages
+- Drop the .WAR file in the root folder of the project inside C:\tomcats\webapps
 
-```shell
-$ npm install
-$ bower install
-```
+- Start tomcat by invoking c:\tomcats\bin\startup.bat
 
-- For all the possible languages that support syntax highlithing on GitHub (which is basically all of them), refer <a href="https://github.com/github/linguist/blob/master/lib/linguist/languages.yml" target="_blank">here</a>.
+- Open your browser (currently supported on chrome) and navigate to:
+http://localhost:8080/magit
 
 ---
 
 ## Features
-## Usage (Optional)
-## Documentation (Optional)
-## Tests (Optional)
 
-- Going into more detail on code and technologies used
-- I utilized this nifty <a href="https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet" target="_blank">Markdown Cheatsheet</a> for this sample `README`.
+- commit, clone, pull, push, merge, fetch, branch managing (creation and deletion), load and export repositories using XML.
 
 ---
 
-## Contributing
+<!-- ## Contributing
 
 > To get started...
 
@@ -148,9 +152,9 @@ $ bower install
 
 - 🔃 Create a new pull request using <a href="https://github.com/joanaz/HireDot2/compare/" target="_blank">`https://github.com/joanaz/HireDot2/compare/`</a>.
 
----
+--- -->
 
-## Team
+<!-- ## Team
 
 > Or Contributors/People
 
@@ -195,4 +199,4 @@ Reach out to me at one of the following places!
 [![License](http://img.shields.io/:license-mit-blue.svg?style=flat-square)](http://badges.mit-license.org)
 
 - **[MIT license](http://opensource.org/licenses/mit-license.php)**
-- Copyright 2015 © <a href="http://fvcproductions.com" target="_blank">FVCproductions</a>.
+- Copyright 2015 © <a href="http://fvcproductions.com" target="_blank">FVCproductions</a>. -->
