@@ -1,7 +1,7 @@
-<a><img style="border: 1px solid #000000;padding: 5px;" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
-<a><img style="border: 1px solid #000000;padding: 5px;" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
-<a><img style="border: 1px solid #000000;padding: 5px;" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
-<a><img style="border: 1px solid #000000;padding: 5px;" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
+<a><img class="image" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
+<a><img class="image" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
+<a><img class="image" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
+<a><img class="image" src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
 
 
 <!-- [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com) -->
@@ -200,3 +200,10 @@ Reach out to me at one of the following places!
 
 - **[MIT license](http://opensource.org/licenses/mit-license.php)**
 - Copyright 2015 © <a href="http://fvcproductions.com" target="_blank">FVCproductions</a>. -->
+
+<style>
+.image {
+  border: 7px solid #000000;
+  padding: 15px;
+}
+</style>
