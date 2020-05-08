@@ -1,13 +1,17 @@
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
+<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample" style="background-color:#fff;padding:4px";></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
 <a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
+
 
 <!-- [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com) -->
 
 <!--***INSERT GRAPHIC HERE (include hyperlink in image)***-->
 
-
+img {
+    background-color: #fff;
+    padding: 4px;
+}
 # Magit web app
 
 > the app functions similar to git, includes features such as commit, clone, pull, push, merge, fetch,
@@ -99,14 +103,14 @@ let generateProject = project => {
 
 - Clone the repository to your local machine
 
-- Download tomcat from https://tomcat.apache.org/download-80.cgi. 
-Pay attention that you are downloading tomcat 8.5.x !
+- Download tomcat from https://tomcat.apache.org/download-80.cgi. <br /> 
+Pay attention that you are downloading tomcat 8.5.x ! <br />
 Select the zip version suitable for your machine (windows\mac ...)
 
 ### Setup
 
-- Unzip the tomcat zip file to any folder you like (e.g. c:\tomcat)
-Navigate to c:\tomcat\conf\tomcat-users.xml and open it 
+- Unzip the tomcat zip file to any folder you like (e.g. c:\tomcat) <br />
+Navigate to c:\tomcat\conf\tomcat-users.xml and open it <br />
 Add the below lines (within the <tomcat-users> element):
 
 ``` XML
