@@ -1,6 +1,6 @@
-<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a></kbd>
-<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a></kbd>
-<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a></kbd>
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a></kbd><br />
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a></kbd><br />
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a></kbd><br />
 <kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a></kbd>
 
 
