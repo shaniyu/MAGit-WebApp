@@ -10,7 +10,7 @@
 
 # Magit web app
 
-> the app functions similar to git, includes features such as commit, clone, pull, push, merge, fetch,
+> the app functions similar to git, includes features such as commit, clone, pull, push, pull requests, merge, fetch,
 branch managing, load and export repositories using XML.
 The web app was developed using JavaScript, HTML, CSS, JQuery and web services via Apache
 Tomcat.
