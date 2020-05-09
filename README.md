@@ -124,6 +124,8 @@ Save the file
 - Open your browser (currently supported on chrome) and navigate to:
 http://localhost:8080/magit
 
+- To start using Magit by loading an existing repository (rather than creating an empty repository), you can use the example xml file [a exampleRepository.xml]()
+
 ---
 
 ## Features
