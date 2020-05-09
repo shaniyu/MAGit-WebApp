@@ -1,7 +1,7 @@
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a>
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a>
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a>
-<a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a>
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/shanisRep3.PNG" title="repositoryExample"></a></kbd>
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/viewMyPRs.PNG" title="viewPullRequestExample"></a></kbd>
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/firstCommitOpenChanges.PNG" title="firstCommitOpenChanges"></a></kbd>
+<kbd><a><img src="https://github.com/shaniyu/MAGit-WebApp/blob/master/Images/createNewFile.PNG" title="headBranchFiles"></a></kbd>
 
 
 <!-- [![FVCproductions](https://avatars1.githubusercontent.com/u/4284691?v=3&s=200)](http://fvcproductions.com) -->
